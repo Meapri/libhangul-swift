@@ -19,6 +19,14 @@ let package = Package(
         .executable(
             name: "HybridSolutionDemo",
             targets: ["HybridSolutionDemo"]
+        ),
+        .executable(
+            name: "HangulDemo",
+            targets: ["HangulDemo"]
+        ),
+        .executable(
+            name: "HanjaDemo",
+            targets: ["HanjaDemo"]
         )
     ],
     dependencies: [],
@@ -34,7 +42,20 @@ let package = Package(
         .executableTarget(
             name: "HybridSolutionDemo",
             dependencies: ["LibHangul"],
-            path: "."
+            path: "Sources/Demos",
+            sources: ["HybridSolutionDemo.swift"]
+        ),
+        .executableTarget(
+            name: "HangulDemo",
+            dependencies: ["LibHangul"],
+            path: "Sources/Demos",
+            sources: ["demo.swift"]
+        ),
+        .executableTarget(
+            name: "HanjaDemo",
+            dependencies: ["LibHangul"],
+            path: "Sources/Demos",
+            sources: ["hanja-demo.swift"]
         ),
         .testTarget(
             name: "LibHangulTests",

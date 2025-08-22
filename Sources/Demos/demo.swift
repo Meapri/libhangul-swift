@@ -1,5 +1,6 @@
 #!/usr/bin/env swift
 
+import Foundation
 import LibHangul
 
 // LibHangul Swift 데모

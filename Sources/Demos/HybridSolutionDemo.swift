@@ -1,6 +1,8 @@
 #!/usr/bin/env swift
 
 import Foundation
+import AppKit
+import LibHangul
 
 print("LibHangul Swift 하이브리드 솔루션 데모")
 print("=====================================\n")
@@ -69,7 +71,7 @@ class HangulInputMethod {
     private func insertTextToClient(_ client: NSTextInputClient) {
         let committed = inputContext.getCommitString()
         if !committed.isEmpty {
-            let text = String(committed.compactMap { UnicodeScalar($0) })
+            let text = String(committed.compactMap { UnicodeScalar($0) }.map { Character($0) })
             client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
         }
     }
@@ -84,29 +86,17 @@ class HangulIMEApp {
     // 라이브러리 레벨 엔진
     private let inputEngine = LibHangul.createInputContext(keyboard: "2")
 
-    // 앱 레벨 기능들
-    private let preferences = HangulPreferences()
-    private let keyboardLayouts = KeyboardLayoutManager()
-    private let hanjaDictionary = HanjaDictionaryManager()
-
-    func processInput(_ input: String) -> InputResult {
+    func processInput(_ input: String) -> String {
         // 라이브러리 엔진으로 처리
         let result = inputEngine.processText(input)
-
-        // 추가 기능 적용
-        if preferences.isHanjaEnabled && result.needsHanja {
-            let hanja = hanjaDictionary.search(result.text)
-            return InputResult(text: result.text, hanjaCandidates: hanja)
-        }
-
         return result
     }
 }
 
+// 간단한 결과 구조체
 struct InputResult {
     let text: String
     let hanjaCandidates: [String]?
-    let needsHanja: Bool
 }
 
 print("\n✅ 하이브리드 접근이 가장 이상적입니다:")

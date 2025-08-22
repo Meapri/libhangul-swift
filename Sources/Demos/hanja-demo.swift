@@ -1,5 +1,6 @@
 #!/usr/bin/env swift
 
+import Foundation
 import LibHangul
 
 // LibHangul 한자 기능 데모
@@ -77,7 +78,9 @@ if let hanjaTable = LibHangul.loadHanjaTable() {
         print("❌ 테스트 사전 로드 실패")
     }
 }
-else {
+
+// 첫 번째 if-else 문의 끝
+if false {  // 이 부분은 실행되지 않음
     print("❌ 한자 사전 로드 실패")
 }
 
