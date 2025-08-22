@@ -1,0 +1,273 @@
+//
+//  HangulKeyboard.swift
+//  LibHangul
+//
+//  Created by Sonic AI Assistant
+//
+//  한글 키보드 레이아웃 관리
+//
+
+import Foundation
+
+/// 키보드 타입 열거형
+public enum HangulKeyboardType: Int {
+    case jamo = 0      // 자모 단위 입력
+    case jaso = 1      // 자소 단위 입력
+    case romaja = 2    // 로마자 방식
+    case jamoYet = 3   // 옛한글 자모
+    case jasoYet = 4   // 옛한글 자소
+}
+
+/// 키보드 레이아웃을 정의하는 프로토콜
+public protocol HangulKeyboard {
+    /// 키보드 식별자
+    var identifier: String { get }
+    /// 키보드 이름
+    var name: String { get }
+    /// 키보드 타입
+    var type: HangulKeyboardType { get }
+
+    /// 키 코드를 자모로 변환
+    /// - Parameter key: ASCII 키 코드
+    /// - Returns: 변환된 자모 코드, 없으면 0
+    func mapKey(_ key: Int) -> UCSChar
+
+    /// 키보드 타입 설정
+    /// - Parameter type: 새 키보드 타입
+    func setType(_ type: HangulKeyboardType)
+}
+
+/// 기본 키보드 레이아웃 구현체
+public final class HangulKeyboardDefault: HangulKeyboard {
+    public let identifier: String
+    public let name: String
+    public private(set) var type: HangulKeyboardType
+
+    /// 키 매핑 테이블 (ASCII -> 자모)
+    private var keyMap: [Int: UCSChar] = [:]
+
+    public init(identifier: String, name: String, type: HangulKeyboardType = .jaso) {
+        self.identifier = identifier
+        self.name = name
+        self.type = type
+        setupDefaultMappings()
+    }
+
+    public func mapKey(_ key: Int) -> UCSChar {
+        keyMap[key] ?? 0
+    }
+
+    public func setType(_ type: HangulKeyboardType) {
+        self.type = type
+    }
+
+    /// 키 매핑을 추가
+    /// - Parameters:
+    ///   - key: ASCII 키 코드
+    ///   - jamo: 매핑될 자모 코드
+    public func addMapping(key: Int, jamo: UCSChar) {
+        keyMap[key] = jamo
+    }
+
+    /// 기본 키보드 매핑 설정 (두벌식 기준)
+    private func setupDefaultMappings() {
+        // 자음
+        keyMap[Int(Character("r").asciiValue!)] = 0x1100  // ㄱ
+        keyMap[Int(Character("R").asciiValue!)] = 0x1101  // ㄲ
+        keyMap[Int(Character("s").asciiValue!)] = 0x1102  // ㄷ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1103  // ㄹ
+        keyMap[Int(Character("E").asciiValue!)] = 0x1104  // ㄺ
+        keyMap[Int(Character("f").asciiValue!)] = 0x1105  // ㅁ
+        keyMap[Int(Character("a").asciiValue!)] = 0x1106  // ㅂ
+        keyMap[Int(Character("q").asciiValue!)] = 0x1107  // ㅃ
+        keyMap[Int(Character("Q").asciiValue!)] = 0x1108  // ㅄ
+        keyMap[Int(Character("t").asciiValue!)] = 0x1109  // ㅅ
+        keyMap[Int(Character("T").asciiValue!)] = 0x110A  // ㅆ
+        keyMap[Int(Character("d").asciiValue!)] = 0x110B  // ㅇ
+        keyMap[Int(Character("w").asciiValue!)] = 0x110C  // ㅈ
+        keyMap[Int(Character("W").asciiValue!)] = 0x110D  // ㅉ
+        keyMap[Int(Character("c").asciiValue!)] = 0x110E  // ㅊ
+        keyMap[Int(Character("z").asciiValue!)] = 0x110F  // ㅋ
+        keyMap[Int(Character("x").asciiValue!)] = 0x1110  // ㅌ
+        keyMap[Int(Character("v").asciiValue!)] = 0x1111  // ㅍ
+        keyMap[Int(Character("g").asciiValue!)] = 0x1112  // ㅎ
+
+        // 모음
+        keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
+        keyMap[Int(Character("o").asciiValue!)] = 0x1162  // ㅐ
+        keyMap[Int(Character("i").asciiValue!)] = 0x1163  // ㅑ
+        keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ
+        keyMap[Int(Character("j").asciiValue!)] = 0x1165  // ㅓ
+        keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ
+        keyMap[Int(Character("u").asciiValue!)] = 0x1167  // ㅕ
+        keyMap[Int(Character("P").asciiValue!)] = 0x1168  // ㅖ
+        keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ
+        // keyMap[Int("hk")] = 0x116A // ㅘ (다중 키는 별도 처리)
+        // keyMap[Int("ho")] = 0x116B // ㅙ (다중 키는 별도 처리)
+        // keyMap[Int("hl")] = 0x116C // ㅚ (다중 키는 별도 처리)
+        keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ
+        keyMap[Int(Character("n").asciiValue!)] = 0x116E  // ㅜ
+        // keyMap[Int("nj")] = 0x116F // ㅝ (다중 키는 별도 처리)
+        // keyMap[Int("np")] = 0x1170 // ㅞ (다중 키는 별도 처리)
+        // keyMap[Int("nl")] = 0x1171 // ㅟ (다중 키는 별도 처리)
+        keyMap[Int(Character("b").asciiValue!)] = 0x1172  // ㅠ
+        keyMap[Int(Character("m").asciiValue!)] = 0x1173  // ㅡ
+        // keyMap[Int("ml")] = 0x1174 // ㅢ (다중 키는 별도 처리)
+        keyMap[Int(Character("l").asciiValue!)] = 0x1175  // ㅣ
+
+        // 특수 키들 (숫자, 기호 등은 그대로)
+        for i in 0x21...0x7E {
+            if keyMap[i] == nil {
+                keyMap[i] = UCSChar(i)
+            }
+        }
+    }
+}
+
+/// 세벌식 키보드 레이아웃
+public final class HangulKeyboard3Set: HangulKeyboard {
+    public let identifier: String
+    public let name: String
+    public private(set) var type: HangulKeyboardType
+
+    private var keyMap: [Int: UCSChar] = [:]
+
+    public init(identifier: String, name: String) {
+        self.identifier = identifier
+        self.name = name
+        self.type = .jaso
+        setup3SetMappings()
+    }
+
+    public func mapKey(_ key: Int) -> UCSChar {
+        keyMap[key] ?? 0
+    }
+
+    public func setType(_ type: HangulKeyboardType) {
+        self.type = type
+    }
+
+    private func setup3SetMappings() {
+        // 세벌식 자판 매핑 (간략 버전)
+        // 실제 세벌식 구현은 더 복잡하지만 여기서는 기본적인 매핑만 구현
+
+        // 초성 위치
+        keyMap[Int(Character("k").asciiValue!)] = 0x1100  // ㄱ
+        keyMap[Int(Character("h").asciiValue!)] = 0x1101  // ㄲ
+        keyMap[Int(Character("u").asciiValue!)] = 0x1102  // ㄷ
+        keyMap[Int(Character("y").asciiValue!)] = 0x1103  // ㄹ
+        keyMap[Int(Character("i").asciiValue!)] = 0x1105  // ㅁ
+        keyMap[Int(Character("n").asciiValue!)] = 0x1106  // ㅂ
+        keyMap[Int(Character("j").asciiValue!)] = 0x1107  // ㅃ
+        keyMap[Int(Character("l").asciiValue!)] = 0x1109  // ㅅ
+        keyMap[Int(Character(";").asciiValue!)] = 0x110A  // ㅆ
+        keyMap[Int(Character("o").asciiValue!)] = 0x110B  // ㅇ
+        keyMap[Int(Character("0").asciiValue!)] = 0x110C  // ㅈ
+        keyMap[Int(Character("p").asciiValue!)] = 0x110E  // ㅊ
+        keyMap[Int(Character("m").asciiValue!)] = 0x110F  // ㅋ
+        keyMap[Int(Character(",").asciiValue!)] = 0x1110  // ㅌ
+        keyMap[Int(Character(".").asciiValue!)] = 0x1111  // ㅍ
+        keyMap[Int(Character("/").asciiValue!)] = 0x1112  // ㅎ
+
+        // 중성 위치
+        keyMap[Int(Character("f").asciiValue!)] = 0x1161  // ㅏ
+        keyMap[Int(Character("r").asciiValue!)] = 0x1162  // ㅐ
+        keyMap[Int(Character("6").asciiValue!)] = 0x1163  // ㅑ
+        keyMap[Int(Character("t").asciiValue!)] = 0x1165  // ㅓ
+        keyMap[Int(Character("c").asciiValue!)] = 0x1166  // ㅔ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1167  // ㅕ
+        keyMap[Int(Character("7").asciiValue!)] = 0x1169  // ㅗ
+        keyMap[Int(Character("8").asciiValue!)] = 0x116D  // ㅛ
+        keyMap[Int(Character("d").asciiValue!)] = 0x116E  // ㅜ
+        keyMap[Int(Character("x").asciiValue!)] = 0x1172  // ㅠ
+        keyMap[Int(Character("4").asciiValue!)] = 0x1173  // ㅡ
+        keyMap[Int(Character("v").asciiValue!)] = 0x1175  // ㅣ
+
+        // 종성 위치
+        keyMap[Int(Character("F").asciiValue!)] = 0x11A8  // ㄱ
+        keyMap[Int(Character("R").asciiValue!)] = 0x11A9  // ㄲ
+        keyMap[Int(Character("T").asciiValue!)] = 0x11AB  // ㄷ
+        keyMap[Int(Character("C").asciiValue!)] = 0x11AE  // ㄹ
+        keyMap[Int(Character("E").asciiValue!)] = 0x11B7  // ㅁ
+        keyMap[Int(Character("7").asciiValue!)] = 0x11B8  // ㅂ
+        keyMap[Int(Character("8").asciiValue!)] = 0x11BA  // ㅅ
+        keyMap[Int(Character("D").asciiValue!)] = 0x11BB  // ㅆ
+        keyMap[Int(Character("X").asciiValue!)] = 0x11BC  // ㅇ
+        keyMap[Int(Character("4").asciiValue!)] = 0x11BD  // ㅈ
+        keyMap[Int(Character("V").asciiValue!)] = 0x11BE  // ㅊ
+        keyMap[Int(Character("5").asciiValue!)] = 0x11BF  // ㅋ
+        keyMap[Int(Character("%").asciiValue!)] = 0x11C0  // ㅌ
+        keyMap[Int(Character("^").asciiValue!)] = 0x11C1  // ㅍ
+        keyMap[Int(Character("&").asciiValue!)] = 0x11C2  // ㅎ
+    }
+}
+
+/// 키보드 관리자
+public final class HangulKeyboardManager {
+    /// 등록된 키보드들
+    private var keyboards: [String: HangulKeyboard] = [:]
+
+    /// 기본 키보드들 등록
+    public init() {
+        registerDefaultKeyboards()
+    }
+
+    /// 키보드 등록
+    /// - Parameter keyboard: 등록할 키보드
+    public func registerKeyboard(_ keyboard: HangulKeyboard) {
+        keyboards[keyboard.identifier] = keyboard
+    }
+
+    /// 키보드 조회
+    /// - Parameter identifier: 키보드 식별자
+    /// - Returns: 키보드 객체, 없으면 nil
+    public func keyboard(for identifier: String) -> HangulKeyboard? {
+        keyboards[identifier]
+    }
+
+    /// 등록된 모든 키보드의 식별자 목록
+    /// - Returns: 키보드 식별자 배열
+    public func keyboardIdentifiers() -> [String] {
+        Array(keyboards.keys).sorted()
+    }
+
+    /// 등록된 모든 키보드 목록
+    /// - Returns: 키보드 객체 배열
+    public func allKeyboards() -> [HangulKeyboard] {
+        Array(keyboards.values)
+    }
+
+    /// 기본 키보드들 등록
+    private func registerDefaultKeyboards() {
+        // 두벌식 키보드
+        let dubeol = HangulKeyboardDefault(
+            identifier: "2",
+            name: "두벌식",
+            type: .jaso
+        )
+        registerKeyboard(dubeol)
+
+        // 세벌식 키보드
+        let sebeol = HangulKeyboard3Set(
+            identifier: "3",
+            name: "세벌식"
+        )
+        registerKeyboard(sebeol)
+
+        // 두벌식 옛한글
+        let dubeolYet = HangulKeyboardDefault(
+            identifier: "2y",
+            name: "두벌식 옛한글",
+            type: .jasoYet
+        )
+        registerKeyboard(dubeolYet)
+
+        // 세벌식 옛한글
+        let sebeolYet = HangulKeyboard3Set(
+            identifier: "3y",
+            name: "세벌식 옛한글"
+        )
+        sebeolYet.setType(.jasoYet)
+        registerKeyboard(sebeolYet)
+    }
+}
