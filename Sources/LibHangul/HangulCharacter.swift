@@ -88,37 +88,68 @@ public struct HangulJamoCombination {
 /// 한글 자모 관련 기능을 제공하는 클래스
 public final class HangulCharacter {
 
+    // MARK: - Performance Optimizations
+
+    /// 자모 유니코드 범위 캐시 (Int로 변환)
+    @usableFromInline
+    static let chosungRange = Int(0x1100)...Int(0x115F)
+    @usableFromInline
+    static let jungseongRange = Int(0x1160)...Int(0x11A7)
+    @usableFromInline
+    static let jongseongRange = Int(0x11A8)...Int(0x11FF)
+    @usableFromInline
+    static let syllableRange = Int(0xAC00)...Int(0xD7A3)
+    @usableFromInline
+    static let cjamoRange = Int(0x3131)...Int(0x318E)
+
+    /// 확장 범위 캐시
+    @usableFromInline
+    static let chosungExtARange = Int(0xA960)...Int(0xA97C)
+    @usableFromInline
+    static let jungseongExtBRange = Int(0xD7B0)...Int(0xD7C6)
+    @usableFromInline
+    static let jongseongExtBRange = Int(0xD7CB)...Int(0xD7FB)
+
+    /// 결합 가능성 캐시 (성능 최적화)
+    @usableFromInline
+    static let chosungConjoinableRange = Int(0x1100)...Int(0x1112)
+    @usableFromInline
+    static let jungseongConjoinableRange = Int(0x1161)...Int(0x1175)
+    @usableFromInline
+    static let jongseongConjoinableRange = Int(0x11A7)...Int(0x11C2)
+
     // MARK: - 자모 판별 함수들
 
     /// 초성인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 초성이면 true
+    @inlinable
     public static func isChoseong(_ c: UCSChar) -> Bool {
-        HangulConstants.choseongRange.contains(c) ||
-        HangulConstants.choseongExtARange.contains(c)
+        chosungRange.contains(Int(c)) || chosungExtARange.contains(Int(c))
     }
 
     /// 중성인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 중성이면 true
+    @inlinable
     public static func isJungseong(_ c: UCSChar) -> Bool {
-        HangulConstants.jungseongRange.contains(c) ||
-        HangulConstants.jungseongExtBRange.contains(c)
+        jungseongRange.contains(Int(c)) || jungseongExtBRange.contains(Int(c))
     }
 
     /// 종성인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 종성이면 true
+    @inlinable
     public static func isJongseong(_ c: UCSChar) -> Bool {
-        HangulConstants.jongseongRange.contains(c) ||
-        HangulConstants.jongseongExtBRange.contains(c)
+        jongseongRange.contains(Int(c)) || jongseongExtBRange.contains(Int(c))
     }
 
     /// 한글 음절인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 한글 음절이면 true
+    @inlinable
     public static func isSyllable(_ c: UCSChar) -> Bool {
-        HangulConstants.syllableRange.contains(c)
+        syllableRange.contains(Int(c))
     }
 
     /// 자모인지 확인 (초성, 중성, 종성 중 하나)
@@ -131,29 +162,34 @@ public final class HangulCharacter {
     /// 호환 자모인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 호환 자모이면 true
+    @inlinable
     public static func isCJamo(_ c: UCSChar) -> Bool {
-        HangulConstants.cjamoRange.contains(c)
+        cjamoRange.contains(Int(c))
     }
 
     /// 결합 가능한 초성인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 결합 가능하면 true
+    @inlinable
     public static func isChoseongConjoinable(_ c: UCSChar) -> Bool {
-        (0x1100...0x1112).contains(c)
+        chosungConjoinableRange.contains(Int(c))
     }
 
     /// 결합 가능한 중성인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 결합 가능하면 true
+    @inlinable
     public static func isJungseongConjoinable(_ c: UCSChar) -> Bool {
-        (0x1161...0x1175).contains(c)
+        jungseongConjoinableRange.contains(Int(c))
     }
 
     /// 결합 가능한 종성인지 확인
     /// - Parameter c: 검사할 UCS 코드
     /// - Returns: 결합 가능하면 true
+    @inlinable
     public static func isJongseongConjoinable(_ c: UCSChar) -> Bool {
-        (0x11A7...0x11C2).contains(c)
+        // 종성 필러(0x11A7)는 음절 결합 시 사용되므로 true로 처리
+        jongseongConjoinableRange.contains(Int(c))
     }
 
     /// 결합 가능한 자모인지 확인
@@ -172,18 +208,21 @@ public final class HangulCharacter {
     ///   - jongseong: 종성 (0이면 종성 없음)
     /// - Returns: 결합된 음절 코드, 실패시 0
     public static func jamoToSyllable(choseong: UCSChar, jungseong: UCSChar, jongseong: UCSChar = 0) -> UCSChar {
-        // 종성이 0이면 Jongseong filler 사용
-        let jong = jongseong == 0 ? HangulConstants.jongseongBase : jongseong
+        // 종성이 0이면 jongseong offset은 0
+        let jong = jongseong
 
-        guard isChoseongConjoinable(choseong),
-              isJungseongConjoinable(jungseong),
-              isJongseongConjoinable(jong) else {
+        // 디버그: 각 자모의 결합 가능성 확인
+        let choseongValid = isChoseongConjoinable(choseong)
+        let jungseongValid = isJungseongConjoinable(jungseong)
+        let jongseongValid = (jong == 0) ? true : isJongseongConjoinable(jong)
+
+        guard choseongValid, jungseongValid, jongseongValid else {
             return 0
         }
 
         let c = choseong - HangulConstants.choseongBase
         let j = jungseong - HangulConstants.jungseongBase
-        let o = jong - HangulConstants.jongseongBase
+        let o = (jong == 0) ? 0 : (jong - HangulConstants.jongseongBase)
 
         return ((c * UInt32(HangulConstants.njungseong) + j) * UInt32(HangulConstants.njongseong) + o) + HangulConstants.syllableBase
     }
@@ -237,4 +276,6 @@ public final class HangulCharacter {
 
         return jamoTable[jamo] ?? jamo
     }
+
+
 }

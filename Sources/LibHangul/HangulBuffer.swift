@@ -19,14 +19,21 @@ public final class HangulBuffer {
     /// 종성
     public private(set) var jongseong: UCSChar = 0
 
-    /// 자모 스택 (최대 12개)
+    /// 자모 스택
     private var stack: [UCSChar] = []
-    private let maxStackSize = 12
+    private let maxStackSize: Int
+
+    /// 최대 스택 크기
+    public var maxStackSizeValue: Int {
+        maxStackSize
+    }
+
+    public init(maxStackSize: Int = 12) {
+        self.maxStackSize = maxStackSize
+    }
 
     /// 현재 스택 인덱스
     private var index: Int = 0
-
-    public init() {}
 
     /// 버퍼가 비어있는지 확인
     public var isEmpty: Bool {
