@@ -1,4 +1,5 @@
 // swift-tools-version:6.0
+
 import PackageDescription
 
 let package = Package(
@@ -14,17 +15,35 @@ let package = Package(
         .library(
             name: "LibHangul",
             targets: ["LibHangul"]
+        ),
+        .executable(
+            name: "HybridSolutionDemo",
+            targets: ["HybridSolutionDemo"]
         )
     ],
+    dependencies: [],
     targets: [
         .target(
             name: "LibHangul",
-            path: "Sources/LibHangul"
+            dependencies: [],
+            path: "Sources/LibHangul",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+        .executableTarget(
+            name: "HybridSolutionDemo",
+            dependencies: ["LibHangul"],
+            path: "."
         ),
         .testTarget(
             name: "LibHangulTests",
             dependencies: ["LibHangul"],
-            path: "Tests/LibHangulTests"
+            path: "Tests/LibHangulTests",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
         )
-    ]
+    ],
+    swiftLanguageVersions: [.v6]
 )
