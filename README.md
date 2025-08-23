@@ -481,49 +481,69 @@ swift test --filter HangulInputContextTests/testBasicHangulInput
 swift test --filter IntegrationTests/testJongseongInput
 ```
 
+### 📁 추가 폴더 설명
+
+#### Development 폴더
+개발 과정에서 생성된 디버그 및 검증용 파일들이 포함되어 있습니다. 이 폴더는 `.gitignore`에 의해 Git 저장소에서 제외됩니다.
+
+#### Examples 폴더
+실제 사용 예제와 데모 코드들이 포함되어 있습니다:
+
+```bash
+# 예제 코드 실행
+swift run Examples/demo.swift
+swift run Examples/hanja-demo.swift
+```
+
 ## 🏗️ 프로젝트 구조
 
 ```
-Sources/LibHangul/
-├── LibHangul.swift              # 메인 API 및 설정
-├── HangulCharacter.swift        # 한글 자모 처리 (완벽 구현)
-├── HangulBuffer.swift           # 입력 버퍼 관리 (안정적)
-├── HangulKeyboard.swift         # 키보드 레이아웃 (최적화)
-├── HangulKeyboard.swift.backup  # 백업 파일
-├── HangulInputContext.swift     # 입력 컨텍스트 (고급 기능 완벽)
-├── Examples.swift               # 사용 예제
-├── Hanja.swift                  # 한자 처리
-└── ...
-
-Tests/LibHangulTests/
-├── HangulCharacterTests.swift       # 자모 처리 테스트 (7/7 통과)
-├── HangulInputContextTests.swift    # 입력 컨텍스트 테스트 (11/11 통과)
-├── LibHangulTests.swift             # 기본 API 테스트
-├── AdvancedInputContextTests.swift  # 고급 기능 테스트 (19/19 통과)
-├── ErrorHandlingTests.swift         # 오류 처리 테스트 (완벽 통과)
-├── IntegrationTests.swift           # 통합 테스트 (11/11 통과) - 신규
-├── PerformanceTests.swift           # 성능 테스트
-├── UnicodeTests.swift               # 유니코드 처리 테스트
-└── HanjaTests.swift                 # 한자 기능 테스트 (14/14 통과)
-
-Demos/                              # 데모 파일들
-├── demo.swift
-├── hanja-demo.swift
-└── HybridSolutionDemo.swift
-
-[디버그 및 검증용 파일들]           # 개발 과정에서 생성된 파일들
-├── check_key.swift
-├── debug_english.swift
-├── debug_f_key.swift
-├── debug_keys.swift
-├── final_validation.swift
-├── integration_test.swift
-├── test_buffer_debug.swift
-├── test_hangul_mapping.swift
-├── test_individual_syllables.swift
-├── test_korean_unicode.swift
-├── test_manual_unicode.swift
-└── test_unicode.swift
+📁 libhangul-swift/
+├── 📄 Package.swift                    # Swift Package Manager 설정
+├── 📄 README.md                       # 프로젝트 문서
+├── 📄 .gitignore                      # Git 제외 파일 설정
+│
+├── 📁 Sources/                        # 메인 소스 코드
+│   └── 📁 LibHangul/
+│       ├── LibHangul.swift            # 메인 API 및 설정
+│       ├── HangulCharacter.swift      # 한글 자모 처리 (완벽 구현)
+│       ├── HangulBuffer.swift         # 입력 버퍼 관리 (안정적)
+│       ├── HangulKeyboard.swift       # 키보드 레이아웃 (최적화)
+│       ├── HangulKeyboard.swift.backup # 백업 파일
+│       ├── HangulInputContext.swift   # 입력 컨텍스트 (고급 기능 완벽)
+│       ├── Examples.swift             # 사용 예제
+│       └── Hanja.swift                # 한자 처리
+│
+├── 📁 Tests/                          # 공식 테스트 코드
+│   └── 📁 LibHangulTests/
+│       ├── HangulCharacterTests.swift       # 자모 처리 테스트 (7/7 통과)
+│       ├── HangulInputContextTests.swift    # 입력 컨텍스트 테스트 (11/11 통과)
+│       ├── LibHangulTests.swift             # 기본 API 테스트
+│       ├── AdvancedInputContextTests.swift  # 고급 기능 테스트 (19/19 통과)
+│       ├── ErrorHandlingTests.swift         # 오류 처리 테스트 (완벽 통과)
+│       ├── IntegrationTests.swift           # 통합 테스트 (11/11 통과) - 신규
+│       ├── PerformanceTests.swift           # 성능 테스트
+│       ├── UnicodeTests.swift               # 유니코드 처리 테스트
+│       └── HanjaTests.swift                 # 한자 기능 테스트 (14/14 통과)
+│
+├── 📁 Examples/                       # 데모 및 예제 코드
+│   ├── demo.swift                     # 기본 사용 예제
+│   ├── hanja-demo.swift               # 한자 기능 데모
+│   └── HybridSolutionDemo.swift       # 하이브리드 솔루션 데모
+│
+└── 📁 Development/                    # 개발용 파일들 (저장소에서 제외)
+    ├── check_key.swift                # 키 검증 스크립트
+    ├── debug_english.swift            # 영어 입력 디버그
+    ├── debug_f_key.swift              # F 키 디버그
+    ├── debug_keys.swift               # 키보드 디버그
+    ├── final_validation.swift         # 최종 검증 스크립트
+    ├── integration_test.swift         # 통합 테스트 스크립트
+    ├── test_buffer_debug.swift        # 버퍼 디버그
+    ├── test_hangul_mapping.swift      # 한글 매핑 테스트
+    ├── test_individual_syllables.swift # 개별 음절 테스트
+    ├── test_korean_unicode.swift      # 한국어 유니코드 테스트
+    ├── test_manual_unicode.swift      # 수동 유니코드 테스트
+    └── test_unicode.swift             # 유니코드 테스트
 ```
 
 ## 📋 요구사항

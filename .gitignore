@@ -1,35 +1,28 @@
-# Xcode
-*.xcscmblueprint
-*.xccheckout
-*.moved-aside
-*.xccheckout
-*.moved-aside
-*.xcscmblueprint
-*.xcuserstate
-*.xcodeproj
-*.xcworkspace
+# Swift 빌드 결과물
+.build/
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
 
 # Swift Package Manager
-.build/
 Package.resolved
-
-# Swift REPL
-.swift-history
+.swiftpm/
 
 # macOS
 .DS_Store
 
-# Test files
-*.test
+# 개발용 파일들 (저장소에서 제외)
+Development/
+
+# 임시 파일들
+*.tmp
 *.log
 
-# IDE files
+# IDE 설정
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
-# Temporary files
-*.tmp
-*.temp
+# 테스트 결과
+test-results.xml
