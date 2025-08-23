@@ -55,11 +55,10 @@ public class HangulKeyboard {
         // 자음 - 표준 두벌식
         keyMap[Int(Character("r").asciiValue!)] = 0x1100  // ㄱ
         keyMap[Int(Character("R").asciiValue!)] = 0x1101  // ㄲ
-        // 's' 키는 초성(ㄷ)으로 매핑 (종성 매핑은 유지)
         keyMap[Int(Character("s").asciiValue!)] = 0x1102  // ㄷ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1103  // ㄹ
         keyMap[Int(Character("E").asciiValue!)] = 0x1104  // ㄺ
         keyMap[Int(Character("f").asciiValue!)] = 0x1105  // ㅁ
-        keyMap[Int(Character("a").asciiValue!)] = 0x1106  // ㅂ
         keyMap[Int(Character("q").asciiValue!)] = 0x1107  // ㅃ
         keyMap[Int(Character("Q").asciiValue!)] = 0x1108  // ㅄ
         keyMap[Int(Character("t").asciiValue!)] = 0x1109  // ㅅ
@@ -74,24 +73,23 @@ public class HangulKeyboard {
 
         // 모음
         keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
-        // 'o' 키는 초성(ㅇ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
+        keyMap[Int(Character("o").asciiValue!)] = 0x1162  // ㅐ
         keyMap[Int(Character("i").asciiValue!)] = 0x1163  // ㅑ
         keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ
         keyMap[Int(Character("j").asciiValue!)] = 0x1165  // ㅓ
-        // 'e' 키는 영어 입력용으로 남겨두므로 중성 매핑에서 제외
+        keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ
         keyMap[Int(Character("u").asciiValue!)] = 0x1167  // ㅕ
         keyMap[Int(Character("P").asciiValue!)] = 0x1168  // ㅖ
-        // 'h' 키는 초성(ㄲ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
+        keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ
         keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ
         keyMap[Int(Character("n").asciiValue!)] = 0x116E  // ㅜ
         keyMap[Int(Character("b").asciiValue!)] = 0x1172  // ㅠ
         keyMap[Int(Character("m").asciiValue!)] = 0x1173  // ㅡ
-        // 'l' 키는 초성(ㅅ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
+        keyMap[Int(Character("l").asciiValue!)] = 0x1175  // ㅣ
 
         // 종성 위치
         keyMap[Int(Character("F").asciiValue!)] = 0x11A8  // ㄱ
         keyMap[Int(Character("R").asciiValue!)] = 0x11A9  // ㄲ
-        keyMap[Int(Character("s").asciiValue!)] = 0x11AB  // ㄴ (초성 매핑보다 우선)
         keyMap[Int(Character("T").asciiValue!)] = 0x11AB  // ㄴ
         keyMap[Int(Character("C").asciiValue!)] = 0x11AE  // ㄹ
         keyMap[Int(Character("E").asciiValue!)] = 0x11B7  // ㅁ
@@ -110,7 +108,7 @@ public class HangulKeyboard {
 
 /// 기본 키보드 레이아웃 구현체
 public final class HangulKeyboardDefault: HangulKeyboard {
-    public override init(identifier: String, name: String, type: HangulKeyboardType = .jaso) {
+    public init(identifier: String, name: String, type: HangulKeyboardType = .jaso) {
         super.init(identifier: identifier, name: name, type: type)
         // 추가적인 키 매핑 설정
         setupAdditionalMappings()
@@ -127,16 +125,83 @@ public final class HangulKeyboardDefault: HangulKeyboard {
     public override func mapKey(_ key: Int) -> UCSChar {
         return keyMap[key] ?? 0
     }
+
+
+        // 자음 - 표준 두벌식
+        keyMap[Int(Character("r").asciiValue!)] = 0x1100  // ㄱ
+        keyMap[Int(Character("R").asciiValue!)] = 0x1101  // ㄲ
+        keyMap[Int(Character("s").asciiValue!)] = 0x1102  // ㄷ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1103  // ㄹ
+        keyMap[Int(Character("E").asciiValue!)] = 0x1104  // ㄺ
+        keyMap[Int(Character("f").asciiValue!)] = 0x1105  // ㅁ
+        // keyMap[Int(Character("a").asciiValue!)] = 0x1106  // ㅂ (주석 처리 - 영어 입력용)
+        keyMap[Int(Character("q").asciiValue!)] = 0x1107  // ㅃ
+        keyMap[Int(Character("Q").asciiValue!)] = 0x1108  // ㅄ
+        keyMap[Int(Character("t").asciiValue!)] = 0x1109  // ㅅ
+        keyMap[Int(Character("d").asciiValue!)] = 0x110B  // ㅇ
+        keyMap[Int(Character("w").asciiValue!)] = 0x110C  // ㅈ
+        keyMap[Int(Character("W").asciiValue!)] = 0x110D  // ㅉ
+        keyMap[Int(Character("c").asciiValue!)] = 0x110E  // ㅊ
+        keyMap[Int(Character("z").asciiValue!)] = 0x110F  // ㅋ
+        keyMap[Int(Character("x").asciiValue!)] = 0x1110  // ㅌ
+        keyMap[Int(Character("v").asciiValue!)] = 0x1111  // ㅍ
+        keyMap[Int(Character("g").asciiValue!)] = 0x1112  // ㅎ
+
+        // 모음
+        keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
+        keyMap[Int(Character("o").asciiValue!)] = 0x1162  // ㅐ
+        keyMap[Int(Character("i").asciiValue!)] = 0x1163  // ㅑ
+        keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ
+        keyMap[Int(Character("j").asciiValue!)] = 0x1165  // ㅓ
+        keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ
+        keyMap[Int(Character("u").asciiValue!)] = 0x1167  // ㅕ
+        keyMap[Int(Character("P").asciiValue!)] = 0x1168  // ㅖ
+        keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ
+        // keyMap[Int("hk")] = 0x116A // ㅘ (다중 키는 별도 처리)
+        // keyMap[Int("ho")] = 0x116B // ㅙ (다중 키는 별도 처리)
+        // keyMap[Int("hl")] = 0x116C // ㅚ (다중 키는 별도 처리)
+        keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ
+        keyMap[Int(Character("n").asciiValue!)] = 0x116E  // ㅜ
+        // keyMap[Int("nj")] = 0x116F // ㅝ (다중 키는 별도 처리)
+        // keyMap[Int("np")] = 0x1170 // ㅞ (다중 키는 별도 처리)
+        // keyMap[Int("nl")] = 0x1171 // ㅟ (다중 키는 별도 처리)
+        keyMap[Int(Character("b").asciiValue!)] = 0x1172  // ㅠ
+        keyMap[Int(Character("m").asciiValue!)] = 0x1173  // ㅡ
+        // keyMap[Int("ml")] = 0x1174 // ㅢ (다중 키는 별도 처리)
+        keyMap[Int(Character("l").asciiValue!)] = 0x1175  // ㅣ
+
+        // 특수 키들 (숫자, 기호 등은 그대로)
+        for i in 0x21...0x7E {
+            if keyMap[i] == nil {
+                keyMap[i] = UCSChar(i)
+            }
+        }
+    }
 }
 
-/// 세벌식 키보드 구현체
+/// 세벌식 키보드 레이아웃
 public final class HangulKeyboard3Set: HangulKeyboard {
-    public override init(identifier: String, name: String, type: HangulKeyboardType = .jaso) {
-        super.init(identifier: identifier, name: name, type: type)
+    public let identifier: String
+    public let name: String
+    public private(set) var type: HangulKeyboardType
+
+    private var keyMap: [Int: UCSChar] = [:]
+
+    public init(identifier: String, name: String) {
+        self.identifier = identifier
+        self.name = name
+        self.type = .jaso
         setup3SetMappings()
     }
 
-    /// 세벌식 자판 매핑 설정
+    public func mapKey(_ key: Int) -> UCSChar {
+        keyMap[key] ?? 0
+    }
+
+    public func setType(_ type: HangulKeyboardType) {
+        self.type = type
+    }
+
     private func setup3SetMappings() {
         // 세벌식 자판 매핑 (간략 버전)
         // 실제 세벌식 구현은 더 복잡하지만 여기서는 기본적인 매핑만 구현
@@ -160,40 +225,36 @@ public final class HangulKeyboard3Set: HangulKeyboard {
         keyMap[Int(Character("/").asciiValue!)] = 0x1112  // ㅎ
 
         // 중성 위치
-        // 'f' 키는 초성(ㅁ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
-        // 'r' 키는 초성(ㄱ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
-        keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
+        keyMap[Int(Character("f").asciiValue!)] = 0x1161  // ㅏ
+        keyMap[Int(Character("r").asciiValue!)] = 0x1162  // ㅐ
         keyMap[Int(Character("6").asciiValue!)] = 0x1163  // ㅑ
-        keyMap[Int(Character("c").asciiValue!)] = 0x1165  // ㅓ
-        keyMap[Int(Character("e").asciiValue!)] = 0x1166  // ㅔ
-        keyMap[Int(Character("7").asciiValue!)] = 0x1167  // ㅕ
-        keyMap[Int(Character("v").asciiValue!)] = 0x1169  // ㅗ
-        keyMap[Int(Character("4").asciiValue!)] = 0x116D  // ㅛ
-        keyMap[Int(Character("b").asciiValue!)] = 0x116E  // ㅜ
-        keyMap[Int(Character("5").asciiValue!)] = 0x1172  // ㅠ
-        keyMap[Int(Character("t").asciiValue!)] = 0x1173  // ㅡ
-        keyMap[Int(Character("g").asciiValue!)] = 0x1175  // ㅣ
+        keyMap[Int(Character("t").asciiValue!)] = 0x1165  // ㅓ
+        keyMap[Int(Character("c").asciiValue!)] = 0x1166  // ㅔ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1167  // ㅕ
+        keyMap[Int(Character("7").asciiValue!)] = 0x1169  // ㅗ
+        keyMap[Int(Character("8").asciiValue!)] = 0x116D  // ㅛ
+        keyMap[Int(Character("d").asciiValue!)] = 0x116E  // ㅜ
+        keyMap[Int(Character("x").asciiValue!)] = 0x1172  // ㅠ
+        keyMap[Int(Character("4").asciiValue!)] = 0x1173  // ㅡ
+        keyMap[Int(Character("v").asciiValue!)] = 0x1175  // ㅣ
 
         // 종성 위치
-        keyMap[Int(Character("d").asciiValue!)] = 0x11A8  // ㄱ
-        keyMap[Int(Character("s").asciiValue!)] = 0x11A9  // ㄲ
-        keyMap[Int(Character("w").asciiValue!)] = 0x11AB  // ㄷ
-        keyMap[Int(Character("3").asciiValue!)] = 0x11AE  // ㄹ
-        keyMap[Int(Character("a").asciiValue!)] = 0x11B7  // ㅁ
-        keyMap[Int(Character("z").asciiValue!)] = 0x11B8  // ㅂ
-        keyMap[Int(Character("x").asciiValue!)] = 0x11BA  // ㅅ
-        keyMap[Int(Character("2").asciiValue!)] = 0x11BB  // ㅆ
-        keyMap[Int(Character("q").asciiValue!)] = 0x11BC  // ㅇ
-        keyMap[Int(Character("1").asciiValue!)] = 0x11BD  // ㅈ
-        keyMap[Int(Character("9").asciiValue!)] = 0x11BE  // ㅊ
-        keyMap[Int(Character("8").asciiValue!)] = 0x11BF  // ㅋ
-        keyMap[Int(Character("-").asciiValue!)] = 0x11C0  // ㅌ
-        keyMap[Int(Character("=").asciiValue!)] = 0x11C1  // ㅍ
-        keyMap[Int(Character("]").asciiValue!)] = 0x11C2  // ㅎ
-    }
-
-    public override func mapKey(_ key: Int) -> UCSChar {
-        return keyMap[key] ?? 0
+        keyMap[Int(Character("F").asciiValue!)] = 0x11A8  // ㄱ
+        keyMap[Int(Character("R").asciiValue!)] = 0x11A9  // ㄲ
+        keyMap[Int(Character("T").asciiValue!)] = 0x11AB  // ㄴ
+        keyMap[Int(Character("1").asciiValue!)] = 0x11AB  // ㄴ (종성용)
+        keyMap[Int(Character("C").asciiValue!)] = 0x11AE  // ㄹ
+        keyMap[Int(Character("E").asciiValue!)] = 0x11B7  // ㅁ
+        keyMap[Int(Character("7").asciiValue!)] = 0x11B8  // ㅂ
+        keyMap[Int(Character("8").asciiValue!)] = 0x11BA  // ㅅ
+        keyMap[Int(Character("D").asciiValue!)] = 0x11BB  // ㅆ
+        keyMap[Int(Character("X").asciiValue!)] = 0x11BC  // ㅇ
+        keyMap[Int(Character("4").asciiValue!)] = 0x11BD  // ㅈ
+        keyMap[Int(Character("V").asciiValue!)] = 0x11BE  // ㅊ
+        keyMap[Int(Character("5").asciiValue!)] = 0x11BF  // ㅋ
+        keyMap[Int(Character("%").asciiValue!)] = 0x11C0  // ㅌ
+        keyMap[Int(Character("^").asciiValue!)] = 0x11C1  // ㅍ
+        keyMap[Int(Character("&").asciiValue!)] = 0x11C2  // ㅎ
     }
 }
 
@@ -262,6 +323,7 @@ public final class HangulKeyboardManager {
             identifier: "3y",
             name: "세벌식 옛한글"
         )
+        sebeolYet.setType(.jasoYet)
         registerKeyboard(sebeolYet)
     }
 }

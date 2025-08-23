@@ -144,22 +144,40 @@ public final class HangulInputContext {
         do {
             guard let keyboard = keyboard else { return false }
 
+            // 키 코드 유효성 검증 (음수 방지)
+            guard key >= 0 && key <= 0x10FFFF else {
+                delegate?.hangulInputContext(self, didProcess: key, result: false)
+                return false
+            }
+
+            // 키 매핑
+            let jamo = keyboard.mapKey(key)
+
             // 백스페이스 처리
             if key == 8 || key == 0x7F { // Backspace or Delete
                 let result = backspace()
                 delegate?.hangulInputContext(self, didProcess: key, result: result)
                 return result
             }
-
-            // 키 매핑
-            let jamo = keyboard.mapKey(key)
             if jamo == 0 {
-                // 매핑되지 않은 키는 그대로 통과
-                delegate?.hangulInputContext(self, didProcess: key, result: false)
-                return false
+                // NULL 문자는 유효하지 않은 입력으로 처리
+                if key == 0 {
+                    delegate?.hangulInputContext(self, didProcess: key, result: false)
+                    return false
+                }
+
+                // 매핑되지 않은 키는 영어/기호로 처리하여 바로 커밋
+                // 이전 내용이 있다면 flush (영어 입력 시에는 보통 비어있음)
+                if !buffer.isEmpty {
+                    let _ = safeFlush() // 안전하게 이전 내용 flush 처리
+                }
+                let charValue = UCSChar(key)
+                commitString.append(charValue)
+                delegate?.hangulInputContext(self, didProcess: key, result: true)
+                return true
             }
 
-            // 한글 자모가 아닌 경우 (영어, 숫자, 기호 등)
+            // 한글 자모가 아닌 경우 (영어, 숫자, 기호 등) - 하지만 이 케이스는 jamo == 0에서 처리됨
             if !HangulCharacter.isJamo(jamo) {
                 let _ = safeFlush() // 안전하게 이전 내용 flush 처리
                 commitString.append(jamo)
@@ -205,6 +223,12 @@ public final class HangulInputContext {
             }
         }
 
+        // 추가: 초성 매핑을 종성으로 변환 (특정 키에 대한)
+        if jamo == 0x1102 && !buffer.isEmpty && buffer.choseong != 0 && buffer.jungseong != 0 {
+            // 초성 ㄷ이 입력되었고, 이미 초성과 중성이 있는 경우 종성 ㄴ으로 변환
+            processedJamo = 0x11AB // 종성 ㄴ
+        }
+
         // 자모를 버퍼에 추가
         let success = buffer.push(processedJamo)
         if success {
@@ -212,22 +236,33 @@ public final class HangulInputContext {
 
             // 완성된 음절이 있는지 확인하고 커밋
             let afterPush = buffer.buildSyllable()
+            print("DEBUG: buffer.push success, beforePush: 0x\(String(format: "%04X", beforePush)), afterPush: 0x\(String(format: "%04X", afterPush))")
+
             if beforePush != 0 && afterPush != 0 && beforePush != afterPush {
                 // 이전 음절이 완성되었으므로 커밋
                 commitString.append(beforePush)
+                print("DEBUG: committed beforePush: 0x\(String(format: "%04X", beforePush))")
 
                 // 현재 완성된 음절이 있으면 다시 커밋
                 if afterPush != 0 {
                     commitString.append(afterPush)
+                    print("DEBUG: committed afterPush: 0x\(String(format: "%04X", afterPush))")
                     // 버퍼 초기화 (현재 음절 처리 완료)
                     buffer.clear()
                 }
-            } else if afterPush != 0 && !buffer.isEmpty {
-                // 완성된 음절이 있으면 커밋 (단순화된 로직)
+            } else if afterPush != 0 {
+                // 완성된 음절이 있으면 커밋
                 commitString.append(afterPush)
-                // 버퍼 초기화
-                buffer.clear()
+                print("DEBUG: committed afterPush: 0x\(String(format: "%04X", afterPush))")
+                // 버퍼 초기화 - 하지만 종성 입력 시에는 초기화하지 않음
+                if !HangulCharacter.isJongseong(processedJamo) {
+                    buffer.clear()
+                }
+            } else {
+                print("DEBUG: no syllable to commit")
             }
+
+
         }
 
         return success
@@ -236,6 +271,7 @@ public final class HangulInputContext {
     /// 백스페이스 처리
     /// - Returns: 처리되었으면 true
     public func backspace() -> Bool {
+        // 1. 먼저 버퍼에서 제거 시도
         if !buffer.isEmpty {
             let removed = buffer.pop()
             if removed != 0 {
@@ -243,6 +279,23 @@ public final class HangulInputContext {
                 return true
             }
         }
+
+        // 2. 버퍼가 비어있고, 조합중인 입력이 없는 경우에만 커밋된 문자열에서 제거
+        // (완성된 음절은 백스페이스로 지울 수 없음)
+        if !commitString.isEmpty && buffer.isEmpty {
+            // 최근 커밋된 내용이 완성된 음절인지 확인
+            let lastCommitted = commitString.last
+            if let lastChar = lastCommitted, HangulCharacter.isSyllable(lastChar) {
+                // 완성된 음절인 경우 지우지 않음
+                return false
+            } else {
+                // 일반 문자인 경우 지움
+                _ = commitString.removeLast()
+                delegate?.hangulInputContext(self, didProcess: 8, result: true)
+                return true
+            }
+        }
+
         return false
     }
 
@@ -265,6 +318,14 @@ public final class HangulInputContext {
         let result = commitString
         commitString.removeAll()
         return result
+    }
+
+    /// 디버그용: 버퍼 상태 확인
+    /// - Returns: 버퍼의 초성, 중성, 종성 값
+    internal func debugBufferState() -> (choseong: UCSChar, jungseong: UCSChar, jongseong: UCSChar) {
+        print("debugBufferState: buffer address = \(Unmanaged.passUnretained(buffer).toOpaque())")
+        print("debugBufferState: choseong = 0x\(String(format: "%04X", buffer.choseong)), jungseong = 0x\(String(format: "%04X", buffer.jungseong)), jongseong = 0x\(String(format: "%04X", buffer.jongseong))")
+        return (buffer.choseong, buffer.jungseong, buffer.jongseong)
     }
 
     /// 모든 내용을 커밋 (안전한 버전)
@@ -383,7 +444,7 @@ public final class HangulInputContext {
 
     /// 검증을 포함한 flush
     private func flushWithValidation() throws -> [UCSChar] {
-        guard !buffer.isEmpty || !commitString.isEmpty else {
+        guard !buffer.isEmpty else {
             return []
         }
 
@@ -392,7 +453,7 @@ public final class HangulInputContext {
             try validateBufferState()
         }
 
-        var result = commitString
+        var result: [UCSChar] = []
 
         if !buffer.isEmpty {
             if outputMode == .syllable {
@@ -422,10 +483,10 @@ public final class HangulInputContext {
             }
         }
 
-        // 상태 초기화
+        // 상태 초기화 (버퍼만 비우고, 커밋된 문자열은 그대로 유지)
         buffer.clear()
         preeditString.removeAll()
-        commitString = result
+        // commitString은 그대로 유지 - flush는 버퍼의 내용만 flush
 
         return result
     }
@@ -515,9 +576,14 @@ public final class HangulInputContext {
         let nfc = text.precomposedStringWithCanonicalMapping
         let nfd = text.decomposedStringWithCanonicalMapping
 
-        if text == nfc {
+        // 유니코드 스칼라 수준에서 비교
+        let textScalars = Array(text.unicodeScalars)
+        let nfcScalars = Array(nfc.unicodeScalars)
+        let nfdScalars = Array(nfd.unicodeScalars)
+
+        if textScalars.elementsEqual(nfcScalars) {
             return ("NFC", true, false)
-        } else if text == nfd {
+        } else if textScalars.elementsEqual(nfdScalars) {
             return ("NFD", false, true)
         } else {
             return ("Other/Mixed", false, false)
