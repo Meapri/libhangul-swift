@@ -71,7 +71,7 @@ public final class HangulKeyboardDefault: HangulKeyboard {
 
     /// 기본 키보드 매핑 설정 (두벌식 기준)
     private func setupDefaultMappings() {
-        // 자음
+        // 자음 - 표준 두벌식
         keyMap[Int(Character("r").asciiValue!)] = 0x1100  // ㄱ
         keyMap[Int(Character("R").asciiValue!)] = 0x1101  // ㄲ
         keyMap[Int(Character("s").asciiValue!)] = 0x1102  // ㄷ

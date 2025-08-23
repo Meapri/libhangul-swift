@@ -81,6 +81,9 @@ public final class HangulInputContext {
         set { configuration.forceNFCNormalization = newValue }
     }
 
+    /// 관용 입력 모드 활성화 여부 (초성 ㄷ → 종성 ㄴ 자동 변환)
+    public var enableIdiomaticInput: Bool = true
+
     /// 버퍼 상태 모니터링 활성화
     public var enableBufferMonitoring: Bool {
         get { configuration.enableBufferMonitoring }
@@ -190,10 +193,41 @@ public final class HangulInputContext {
             let _ = safeFlush() // 안전하게 flush
         }
 
+        // 입력 전 버퍼 상태 저장 (완성된 음절 감지용)
+        let beforePush = buffer.buildSyllable()
+
+        // 관용 입력 모드: 초성 ㄷ → 종성 ㄴ 자동 변환
+        var processedJamo = jamo
+        if enableIdiomaticInput && HangulCharacter.isChoseong(jamo) && jamo == 0x1102 { // ㄷ
+            // 이전 입력이 초성이고 현재가 ㄷ인 경우, 종성 ㄴ으로 변환 고려
+            if !buffer.isEmpty && buffer.choseong != 0 && buffer.jungseong == 0 {
+                processedJamo = 0x11AB // 종성 ㄴ
+            }
+        }
+
         // 자모를 버퍼에 추가
-        let success = buffer.push(jamo)
+        let success = buffer.push(processedJamo)
         if success {
             updatePreeditString()
+
+            // 완성된 음절이 있는지 확인하고 커밋
+            let afterPush = buffer.buildSyllable()
+            if beforePush != 0 && afterPush != 0 && beforePush != afterPush {
+                // 이전 음절이 완성되었으므로 커밋
+                commitString.append(beforePush)
+
+                // 현재 완성된 음절이 있으면 다시 커밋
+                if afterPush != 0 {
+                    commitString.append(afterPush)
+                    // 버퍼 초기화 (현재 음절 처리 완료)
+                    buffer.clear()
+                }
+            } else if afterPush != 0 && !buffer.isEmpty {
+                // 완성된 음절이 있으면 커밋 (단순화된 로직)
+                commitString.append(afterPush)
+                // 버퍼 초기화
+                buffer.clear()
+            }
         }
 
         return success
@@ -366,7 +400,22 @@ public final class HangulInputContext {
                 if syllable != 0 {
                     result.append(syllable)
                 } else {
-                    result.append(contentsOf: buffer.getJamoString())
+                    // 완성되지 않은 음절 처리
+                    let jamos = buffer.getJamoString()
+                    // 완성되지 않은 초성만 있는 경우는 처리하지 않음 (버퍼 비움)
+                    if jamos.count == 1 && HangulCharacter.isChoseong(jamos[0]) && buffer.jungseong == 0 {
+                        // 초성만 있고 중성이 없는 경우는 처리하지 않음
+                        // 실제 한글 입력기에서는 이 상태로 남겨두지 않음
+                    } else {
+                        // 다른 경우는 기존 로직 적용
+                        for jamo in jamos {
+                            if HangulCharacter.isChoseong(jamo) && buffer.jungseong == 0 {
+                                result.append(HangulCharacter.compatibilityJamoToJamo(jamo, as: .choseong))
+                            } else {
+                                result.append(jamo)
+                            }
+                        }
+                    }
                 }
             } else {
                 result.append(contentsOf: buffer.getJamoString())

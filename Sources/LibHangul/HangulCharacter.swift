@@ -277,5 +277,73 @@ public final class HangulCharacter {
         return jamoTable[jamo] ?? jamo
     }
 
+    // MARK: - 호환 자모 변환
+
+    /// 호환 자모를 조합형 자모로 변환 (용도별)
+    /// - Parameters:
+    ///   - c: 변환할 호환 자모
+    ///   - as: 변환 목적 (초성, 중성, 종성)
+    /// - Returns: 조합형 자모 코드 (변환 실패 시 원본 반환)
+    @inlinable
+    public static func compatibilityJamoToJamo(_ c: UCSChar, as usage: JamoUsage = .choseong) -> UCSChar {
+        // 호환 초성/중성 (0x3131-0x314E) -> 조합형 초성 (0x1100-0x1112)
+        if c >= 0x3131 && c <= 0x314E {
+            switch usage {
+            case .choseong:
+                return c - 0x3131 + 0x1100
+            case .jungseong:
+                return c - 0x3131 + 0x1161
+            case .jongseong:
+                // 종성 매핑: ㄱ(0x3131) -> ㄱ(0x11A8), ㄲ(0x3132) -> ㄲ(0x11A9), ...
+                let jongseongMap: [UCSChar: UCSChar] = [
+                    0x3131: 0x11A8, 0x3132: 0x11A9, 0x3133: 0x11AA, 0x3134: 0x11AB,
+                    0x3135: 0x11AC, 0x3136: 0x11AD, 0x3137: 0x11AE, 0x3138: 0x11AF,
+                    0x3139: 0x11B0, 0x313A: 0x11B1, 0x313B: 0x11B2, 0x313C: 0x11B3,
+                    0x313D: 0x11B4, 0x313E: 0x11B5, 0x313F: 0x11B6, 0x3140: 0x11B7,
+                    0x3141: 0x11B8, 0x3142: 0x11B9, 0x3143: 0x11BA, 0x3144: 0x11BB,
+                    0x3145: 0x11BC, 0x3146: 0x11BD, 0x3147: 0x11BE, 0x3148: 0x11BF,
+                    0x3149: 0x11C0, 0x314A: 0x11C1, 0x314B: 0x11C2
+                ]
+                return jongseongMap[c] ?? c
+            }
+        }
+        // 호환 중성 (0x314F-0x3163) -> 조합형 중성 (0x1161-0x1175)
+        else if c >= 0x314F && c <= 0x3163 {
+            return c - 0x314F + 0x1161
+        }
+        // 변환할 필요 없음
+        return c
+    }
+
+    /// 자모 용도 열거형
+    public enum JamoUsage {
+        case choseong
+        case jungseong
+        case jongseong
+    }
+
+    /// 호환 자모를 조합형 자모로 변환 (String 버전)
+    /// - Parameter string: 변환할 문자열
+    /// - Returns: 변환된 문자열
+    public static func compatibilityJamoToJamo(_ string: String) -> String {
+        var result = ""
+        for scalar in string.unicodeScalars {
+            let converted = compatibilityJamoToJamo(UCSChar(scalar.value))
+            if let convertedScalar = UnicodeScalar(converted) {
+                result.append(String(convertedScalar))
+            }
+        }
+        return result
+    }
+
+    /// 결합 가능한 자모로 변환 (호환 자모인 경우 조합형으로 변환)
+    /// - Parameter c: 검사할 자모
+    /// - Returns: 결합 가능한 자모 코드
+    @inlinable
+    public static func toConjoinableJamo(_ c: UCSChar) -> UCSChar {
+        let converted = compatibilityJamoToJamo(c)
+        return converted
+    }
+
 
 }

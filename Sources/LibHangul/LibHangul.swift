@@ -398,12 +398,15 @@ public enum LibHangul {
             return nil
         }
 
-        let jong: UCSChar? = jongseong?.unicodeScalars.first.map { UCSChar($0.value) }
+        // 호환 자모를 조합형 자모로 변환 (용도별)
+        let choConverted = HangulCharacter.compatibilityJamoToJamo(UCSChar(cho.value), as: .choseong)
+        let jungConverted = HangulCharacter.compatibilityJamoToJamo(UCSChar(jung.value), as: .jungseong)
+        let jongConverted: UCSChar? = jongseong?.unicodeScalars.first.map { HangulCharacter.compatibilityJamoToJamo(UCSChar($0.value), as: .jongseong) }
 
         let syllable = HangulCharacter.jamoToSyllable(
-            choseong: UCSChar(cho.value),
-            jungseong: UCSChar(jung.value),
-            jongseong: jong ?? 0
+            choseong: choConverted,
+            jungseong: jungConverted,
+            jongseong: jongConverted ?? 0
         )
 
         guard syllable != 0, let scalar = UnicodeScalar(syllable) else {
