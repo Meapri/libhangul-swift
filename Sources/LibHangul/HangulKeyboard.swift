@@ -10,12 +10,28 @@
 import Foundation
 
 /// 키보드 타입 열거형
-public enum HangulKeyboardType: Int {
+public enum HangulKeyboardType: Int, Sendable {
     case jamo = 0      // 자모 단위 입력
     case jaso = 1      // 자소 단위 입력
     case romaja = 2    // 로마자 방식
     case jamoYet = 3   // 옛한글 자모
     case jasoYet = 4   // 옛한글 자소
+
+    /// 키보드 타입 설명
+    public var description: String {
+        switch self {
+        case .jamo:
+            return "자모 단위"
+        case .jaso:
+            return "자소 단위"
+        case .romaja:
+            return "로마자"
+        case .jamoYet:
+            return "옛한글 자모"
+        case .jasoYet:
+            return "옛한글 자소"
+        }
+    }
 }
 
 /// 키보드 레이아웃을 정의하는 기본 클래스

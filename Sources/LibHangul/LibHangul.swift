@@ -16,16 +16,17 @@ import Foundation
 
 // MARK: - Error Handling
 
-/// 라이브러리 오류 타입
-public enum HangulError: LocalizedError {
+/// 라이브러리 오류 타입 - Swift 6 타입 안전성 강화
+public enum HangulError: LocalizedError, Sendable {
     case invalidConfiguration(String)
-    case bufferOverflow(maxSize: Int)
+    case bufferOverflow(Int)
     case invalidJamoCode(UCSChar)
     case keyboardNotFound(String)
     case unicodeConversionFailed(String)
     case memoryAllocationFailed
     case inconsistentState(String)
     case threadSafetyViolation
+    case configurationError(reason: String)
 
     public var errorDescription: String? {
         switch self {
@@ -45,6 +46,8 @@ public enum HangulError: LocalizedError {
             return "일관성 없는 상태: \(reason)"
         case .threadSafetyViolation:
             return "스레드 안전성 위반"
+        case .configurationError(let reason):
+            return "설정 오류: \(reason)"
         }
     }
 
@@ -64,6 +67,8 @@ public enum HangulError: LocalizedError {
             return "입력 컨텍스트를 재설정해보세요"
         case .threadSafetyViolation:
             return "동시 접근을 피하거나 적절한 동기화 메커니즘을 사용하세요"
+        case .configurationError:
+            return "설정 값을 다시 확인하세요"
         default:
             return nil
         }
@@ -72,8 +77,8 @@ public enum HangulError: LocalizedError {
 
 // MARK: - Protocols
 
-/// 한글 입력 엔진 프로토콜
-public protocol HangulInputEngine {
+/// 한글 입력 엔진 프로토콜 - Swift 6 타입 안전성 강화
+public protocol HangulInputEngine: Sendable {
     /// 키 입력 처리
     func process(key: Int, context: HangulInputContext) throws -> Bool
 
@@ -90,8 +95,8 @@ public protocol HangulInputEngine {
     func clear(context: HangulInputContext)
 }
 
-/// 한글 키보드 프로토콜
-public protocol HangulKeyboardProtocol {
+/// 한글 키보드 프로토콜 - Swift 6 타입 안전성 강화
+public protocol HangulKeyboardProtocol: Sendable {
     var id: String { get }
     var name: String { get }
     var type: HangulKeyboardType { get }
@@ -103,8 +108,8 @@ public protocol HangulKeyboardProtocol {
     func updateState(key: Int, state: inout HangulKeyboardState) -> Bool
 }
 
-/// 한글 버퍼 프로토콜
-public protocol HangulBufferProtocol {
+/// 한글 버퍼 프로토콜 - Swift 6 타입 안전성 강화
+public protocol HangulBufferProtocol: Sendable {
     /// 자모 추가
     func push(jamo: UCSChar) throws
 
@@ -124,68 +129,124 @@ public protocol HangulBufferProtocol {
     func copyState() -> HangulBufferState
 }
 
-/// 버퍼 상태 구조체
-public struct HangulBufferState {
+/// 버퍼 상태 구조체 - Swift 6 타입 안전성 강화
+public struct HangulBufferState: Sendable {
     public var choseong: UCSChar = 0
     public var jungseong: UCSChar = 0
     public var jongseong: UCSChar = 0
     public var stack: [UCSChar] = []
+
+    public init(choseong: UCSChar = 0, jungseong: UCSChar = 0, jongseong: UCSChar = 0, stack: [UCSChar] = []) {
+        self.choseong = choseong
+        self.jungseong = jungseong
+        self.jongseong = jongseong
+        self.stack = stack
+    }
 }
 
-/// 키보드 상태 구조체
-public struct HangulKeyboardState {
+/// 키보드 상태 구조체 - Swift 6 타입 안전성 강화
+public struct HangulKeyboardState: Sendable {
     public var shift: Bool = false
     public var capsLock: Bool = false
     public var hangulMode: Bool = true
     public var hanjaMode: Bool = false
+
+    public init(shift: Bool = false, capsLock: Bool = false, hangulMode: Bool = true, hanjaMode: Bool = false) {
+        self.shift = shift
+        self.capsLock = capsLock
+        self.hangulMode = hangulMode
+        self.hanjaMode = hanjaMode
+    }
 }
 
 // MARK: - Configuration
 
-/// 한글 입력 라이브러리 설정
+/// 한글 입력 라이브러리 설정 - Swift 6 타입 안전성 강화
 public struct HangulInputConfiguration: Sendable {
-    /// 최대 버퍼 크기
-    public var maxBufferSize: Int
+    // 타입 안전성을 위한 타입 별칭들
+    public typealias BufferSize = Int
+    public typealias KeyboardId = String
+
+    /// 최대 버퍼 크기 (타입 안전성을 위한 별칭 사용)
+    public var maxBufferSize: BufferSize
 
     /// NFC 정규화 강제 사용
     public var forceNFCNormalization: Bool
 
     /// 버퍼 상태 모니터링 활성화
-    public var enableBufferMonitoring: Bool
+    public var forceBufferMonitoring: Bool
 
     /// 자동 오류 복구 활성화
-    public var autoErrorRecovery: Bool
+    public var forceAutoErrorRecovery: Bool
 
     /// 파일명 호환성 모드 활성화
-    public var filenameCompatibilityMode: Bool
+    public var forceFilenameCompatibilityMode: Bool
 
     /// 출력 모드
     public var outputMode: HangulOutputMode
 
     /// 기본 키보드
-    public var defaultKeyboard: String
+    public var defaultKeyboard: KeyboardId
 
     /// 성능 모드 (메모리 vs 속도 최적화)
     public var performanceMode: PerformanceMode
 
+    /// 유효성 검증을 포함한 생성자
     public init(
-        maxBufferSize: Int = 12,
+        maxBufferSize: BufferSize = 12,
         forceNFCNormalization: Bool = true,
         enableBufferMonitoring: Bool = true,
         autoErrorRecovery: Bool = true,
         filenameCompatibilityMode: Bool = false,
         outputMode: HangulOutputMode = .syllable,
-        defaultKeyboard: String = "2",
+        defaultKeyboard: KeyboardId = "2",
         performanceMode: PerformanceMode = .balanced
-    ) {
+    ) throws {
+        // 유효성 검증
+        guard maxBufferSize > 0 && maxBufferSize <= 1000 else {
+            throw HangulError.invalidConfiguration("버퍼 크기는 1-1000 범위여야 합니다")
+        }
+        guard !defaultKeyboard.isEmpty else {
+            throw HangulError.invalidConfiguration("기본 키보드 ID는 비어있을 수 없습니다")
+        }
+
         self.maxBufferSize = maxBufferSize
         self.forceNFCNormalization = forceNFCNormalization
-        self.enableBufferMonitoring = enableBufferMonitoring
-        self.autoErrorRecovery = autoErrorRecovery
-        self.filenameCompatibilityMode = filenameCompatibilityMode
+        self.forceBufferMonitoring = enableBufferMonitoring
+        self.forceAutoErrorRecovery = autoErrorRecovery
+        self.forceFilenameCompatibilityMode = filenameCompatibilityMode
         self.outputMode = outputMode
         self.defaultKeyboard = defaultKeyboard
         self.performanceMode = performanceMode
+    }
+
+    /// 안전한 생성자 (오류 발생 시 기본값 사용)
+    public static func safe(
+        maxBufferSize: BufferSize = 12,
+        forceNFCNormalization: Bool = true,
+        enableBufferMonitoring: Bool = true,
+        autoErrorRecovery: Bool = true,
+        filenameCompatibilityMode: Bool = false,
+        outputMode: HangulOutputMode = .syllable,
+        defaultKeyboard: KeyboardId = "2",
+        performanceMode: PerformanceMode = .balanced
+    ) -> HangulInputConfiguration {
+        do {
+            return try HangulInputConfiguration(
+                maxBufferSize: maxBufferSize,
+                forceNFCNormalization: forceNFCNormalization,
+                enableBufferMonitoring: enableBufferMonitoring,
+                autoErrorRecovery: autoErrorRecovery,
+                filenameCompatibilityMode: filenameCompatibilityMode,
+                outputMode: outputMode,
+                defaultKeyboard: defaultKeyboard,
+                performanceMode: performanceMode
+            )
+        } catch {
+            print("HangulInputConfiguration 생성 오류: \(error.localizedDescription)")
+            // 기본값으로 폴백
+            return try! HangulInputConfiguration()
+        }
     }
 
     /// 성능 모드
@@ -195,23 +256,23 @@ public struct HangulInputConfiguration: Sendable {
         case balanced          // 균형 모드 (기본값)
     }
 
-    /// 사전 정의된 설정들
-    public static let `default` = HangulInputConfiguration()
+    /// 사전 정의된 설정들 (안전한 생성자 사용)
+    public static let `default` = HangulInputConfiguration.safe()
 
-    public static let memoryOptimized = HangulInputConfiguration(
+    public static let memoryOptimized = HangulInputConfiguration.safe(
         maxBufferSize: 8,
         enableBufferMonitoring: false,
         performanceMode: .memoryOptimized
     )
 
-    public static let speedOptimized = HangulInputConfiguration(
+    public static let speedOptimized = HangulInputConfiguration.safe(
         maxBufferSize: 20,
         enableBufferMonitoring: true,
         autoErrorRecovery: true,
         performanceMode: .speedOptimized
     )
 
-    public static let minimal = HangulInputConfiguration(
+    public static let minimal = HangulInputConfiguration.safe(
         maxBufferSize: 6,
         forceNFCNormalization: false,
         enableBufferMonitoring: false,
@@ -223,25 +284,64 @@ public struct HangulInputConfiguration: Sendable {
 
 // MARK: - Public API
 
-/// libhangul Swift 라이브러리
+/// libhangul Swift 라이브러리 - Swift 6 현대적 API 디자인
 public enum LibHangul {
 
     /// 라이브러리 버전
     public static let version = "1.0.0"
 
-    /// 새로운 한글 입력 컨텍스트 생성
+    // MARK: - Input Context Creation
+
+    /// 새로운 한글 입력 컨텍스트 생성 (Result 타입 반환)
     /// - Parameter keyboard: 키보드 식별자 (기본값: "2" - 두벌식)
-    /// - Returns: HangulInputContext 인스턴스
-    public static func createInputContext(keyboard: String = "2") -> HangulInputContext {
-        HangulInputContext(keyboard: keyboard)
+    /// - Returns: 생성된 컨텍스트 또는 오류
+    public static func createInputContext(keyboard: String = "2") -> Result<HangulInputContext, HangulError> {
+        do {
+            let configuration = HangulInputConfiguration.safe(
+                defaultKeyboard: keyboard,
+                performanceMode: .balanced
+            )
+            return .success(HangulInputContext(configuration: configuration))
+        } catch let error as HangulError {
+            return .failure(error)
+        } catch {
+            return .failure(.configurationError(reason: error.localizedDescription))
+        }
     }
 
     /// 새로운 한글 입력 컨텍스트 생성 (키보드 객체 지정)
     /// - Parameter keyboard: 키보드 객체
     /// - Returns: HangulInputContext 인스턴스
-    public static func createInputContext(keyboard: HangulKeyboard) -> HangulInputContext {
+    public static func createInputContext(keyboard: HangulKeyboard) -> Result<HangulInputContext, HangulError> {
+        do {
+            let configuration = HangulInputConfiguration.safe()
+            return .success(HangulInputContext(keyboard: keyboard, configuration: configuration))
+        } catch let error as HangulError {
+            return .failure(error)
+        } catch {
+            return .failure(.configurationError(reason: error.localizedDescription))
+        }
+    }
+
+    /// 설정으로 한글 입력 컨텍스트 생성
+    /// - Parameter configuration: 입력 설정
+    /// - Returns: 생성된 컨텍스트 또는 오류
+    public static func createInputContext(with configuration: HangulInputConfiguration) -> Result<HangulInputContext, HangulError> {
+        .success(HangulInputContext(configuration: configuration))
+    }
+
+    /// 호환성을 위한 기존 생성자들
+    @available(*, deprecated, message: "Use createInputContext() that returns Result type")
+    public static func createInputContextLegacy(keyboard: String = "2") -> HangulInputContext {
         HangulInputContext(keyboard: keyboard)
     }
+
+    @available(*, deprecated, message: "Use createInputContext() that returns Result type")
+    public static func createInputContextLegacy(keyboard: HangulKeyboard) -> HangulInputContext {
+        HangulInputContext(keyboard: keyboard)
+    }
+
+    // MARK: - Keyboard Management
 
     /// 사용 가능한 키보드 목록 반환
     /// - Returns: 키보드 정보 배열
@@ -249,6 +349,35 @@ public enum LibHangul {
         let manager = HangulKeyboardManager()
         return manager.allKeyboards().map { keyboard in
             (id: keyboard.identifier, name: keyboard.name, type: keyboard.type)
+        }
+    }
+
+    /// 키보드 정보 구조체
+    public struct KeyboardInfo: Sendable {
+        public let id: String
+        public let name: String
+        public let type: HangulKeyboardType
+        public let description: String
+
+        public init(id: String, name: String, type: HangulKeyboardType, description: String = "") {
+            self.id = id
+            self.name = name
+            self.type = type
+            self.description = description
+        }
+    }
+
+    /// 향상된 키보드 목록 반환
+    /// - Returns: 키보드 정보 배열
+    public static func getAvailableKeyboards() -> [KeyboardInfo] {
+        let manager = HangulKeyboardManager()
+        return manager.allKeyboards().map { keyboard in
+            KeyboardInfo(
+                id: keyboard.identifier,
+                name: keyboard.name,
+                type: keyboard.type,
+                description: "\(keyboard.name) (\(keyboard.type.description))"
+            )
         }
     }
 
@@ -260,6 +389,121 @@ public enum LibHangul {
     /// - Returns: 키보드 인스턴스
     public static func createKeyboard(identifier: String, name: String, type: HangulKeyboardType) -> HangulKeyboard {
         HangulKeyboardDefault(identifier: identifier, name: name, type: type)
+    }
+
+    // MARK: - Builder Pattern
+
+    /// 입력 컨텍스트 빌더 - 유연한 설정을 위한 빌더 패턴
+    public struct InputContextBuilder {
+        private var configuration: HangulInputConfiguration
+        private var keyboardId: String?
+
+        public init() {
+            self.configuration = .default
+            self.keyboardId = nil
+        }
+
+        /// 키보드 설정
+        public func withKeyboard(_ keyboardId: String) -> Self {
+            var copy = self
+            copy.keyboardId = keyboardId
+            return copy
+        }
+
+        /// 최대 버퍼 크기 설정
+        public func withMaxBufferSize(_ size: HangulInputConfiguration.BufferSize) -> Self {
+            var copy = self
+            do {
+                copy.configuration = try HangulInputConfiguration(
+                    maxBufferSize: size,
+                    forceNFCNormalization: configuration.forceNFCNormalization,
+                    enableBufferMonitoring: configuration.forceBufferMonitoring,
+                    autoErrorRecovery: configuration.forceAutoErrorRecovery,
+                    filenameCompatibilityMode: configuration.forceFilenameCompatibilityMode,
+                    outputMode: configuration.outputMode,
+                    defaultKeyboard: configuration.defaultKeyboard,
+                    performanceMode: configuration.performanceMode
+                )
+            } catch {
+                // 오류 발생 시 기존 설정 유지
+            }
+            return copy
+        }
+
+        /// 출력 모드 설정
+        public func withOutputMode(_ mode: HangulOutputMode) -> Self {
+            var copy = self
+            do {
+                copy.configuration = try HangulInputConfiguration(
+                    maxBufferSize: configuration.maxBufferSize,
+                    forceNFCNormalization: configuration.forceNFCNormalization,
+                    enableBufferMonitoring: configuration.forceBufferMonitoring,
+                    autoErrorRecovery: configuration.forceAutoErrorRecovery,
+                    filenameCompatibilityMode: configuration.forceFilenameCompatibilityMode,
+                    outputMode: mode,
+                    defaultKeyboard: configuration.defaultKeyboard,
+                    performanceMode: configuration.performanceMode
+                )
+            } catch {
+                // 오류 발생 시 기존 설정 유지
+            }
+            return copy
+        }
+
+        /// 성능 모드 설정
+        public func withPerformanceMode(_ mode: HangulInputConfiguration.PerformanceMode) -> Self {
+            var copy = self
+            do {
+                copy.configuration = try HangulInputConfiguration(
+                    maxBufferSize: configuration.maxBufferSize,
+                    forceNFCNormalization: configuration.forceNFCNormalization,
+                    enableBufferMonitoring: configuration.forceBufferMonitoring,
+                    autoErrorRecovery: configuration.forceAutoErrorRecovery,
+                    filenameCompatibilityMode: configuration.forceFilenameCompatibilityMode,
+                    outputMode: configuration.outputMode,
+                    defaultKeyboard: configuration.defaultKeyboard,
+                    performanceMode: mode
+                )
+            } catch {
+                // 오류 발생 시 기존 설정 유지
+            }
+            return copy
+        }
+
+        /// NFC 정규화 설정
+        public func withNFCNormalization(_ enabled: Bool) -> Self {
+            var copy = self
+            do {
+                copy.configuration = try HangulInputConfiguration(
+                    maxBufferSize: configuration.maxBufferSize,
+                    forceNFCNormalization: enabled,
+                    enableBufferMonitoring: configuration.forceBufferMonitoring,
+                    autoErrorRecovery: configuration.forceAutoErrorRecovery,
+                    filenameCompatibilityMode: configuration.forceFilenameCompatibilityMode,
+                    outputMode: configuration.outputMode,
+                    defaultKeyboard: configuration.defaultKeyboard,
+                    performanceMode: configuration.performanceMode
+                )
+            } catch {
+                // 오류 발생 시 기존 설정 유지
+            }
+            return copy
+        }
+
+        /// 빌드 실행
+        public func build() -> Result<HangulInputContext, HangulError> {
+            let context = HangulInputContext(configuration: configuration)
+            if let keyboardId = keyboardId {
+                context.setKeyboard(with: keyboardId)
+            }
+            return .success(context)
+        }
+    }
+
+    /// 빌더 패턴을 사용한 입력 컨텍스트 생성
+    /// - Returns: 입력 컨텍스트 빌더
+    public static func buildInputContext() -> InputContextBuilder {
+        InputContextBuilder()
     }
 
     /// 기본 한자 사전 로드

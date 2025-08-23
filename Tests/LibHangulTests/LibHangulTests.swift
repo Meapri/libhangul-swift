@@ -109,7 +109,7 @@ final class LibHangulTests: XCTestCase {
     }
 
     func testInputContextTextProcessing() {
-        let context = LibHangul.createInputContext(keyboard: "2")
+        let context = LibHangul.createInputContextLegacy(keyboard: "2")
 
         // 간단한 한글 입력
         let result1 = context.processText("rk") // ㄱ + ㅏ = "가"
@@ -150,7 +150,7 @@ final class LibHangulTests: XCTestCase {
 
     func testIntegration() {
         // 통합 테스트: 한글 입력 -> 분해 -> 재결합
-        let context = LibHangul.createInputContext(keyboard: "2")
+        let context = LibHangul.createInputContextLegacy(keyboard: "2")
 
         // "안녕" 입력 (ASCII 키로)
         let input = "dkssud"  // d=ㅇ, k=ㅏ, s=ㄴ, s=ㄴ, u=ㅕ, d=ㅇ
@@ -170,7 +170,7 @@ final class LibHangulTests: XCTestCase {
     }
 
     func testEdgeCases() {
-        let context = LibHangul.createInputContext()
+        let context = LibHangul.createInputContextLegacy()
 
         // 빈 문자열
         let emptyResult = context.processText("")

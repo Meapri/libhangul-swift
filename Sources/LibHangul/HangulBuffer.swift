@@ -47,7 +47,7 @@ public final class HangulBuffer {
         choseong = 0
         jungseong = 0
         jongseong = 0
-        stack.removeAll()
+        stack.removeAll(keepingCapacity: true)
         index = 0
     }
 

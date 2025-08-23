@@ -305,10 +305,10 @@ class ErrorHandlingTests: XCTestCase {
     func testRepeatedInvalidKeys() {
         // 반복적인 유효하지 않은 키 입력
         for _ in 0..<100 {
-            let result = inputContext.process(-1)
+            let result = inputContext.process(0x11FFFF)
             // 유효하지 않은 키는 처리되지 않거나 제한적으로 처리됨
             // 실제로는 키 코드 유효성 검증에 따라 처리될 수 있음
-            XCTAssertNoThrow(inputContext.process(-1))
+            XCTAssertNoThrow(inputContext.process(0x11FFFF))
         }
 
         // 유효하지 않은 키 반복 후에도 상태가 정상
@@ -331,8 +331,8 @@ class ErrorHandlingTests: XCTestCase {
         inputContext.maxBufferSize = 2
 
         // 3. 유효하지 않은 입력들
-        _ = inputContext.process(-1)
-        _ = inputContext.process(99999)
+        _ = inputContext.process(0x11FFFF)  // 유니코드 범위 초과
+        _ = inputContext.process(99999)     // ASCII 범위 초과
 
         // 4. 버퍼 오버플로우 유발
         _ = inputContext.process(Int(Character("s").asciiValue!))
@@ -431,7 +431,7 @@ class ErrorHandlingTests: XCTestCase {
         for i in 0..<sessionLength {
             // 가끔 유효하지 않은 입력 삽입
             if i % 10 == 0 {
-                _ = inputContext.process(-1) // 유효하지 않은 입력
+                _ = inputContext.process(0x11FFFF) // 유효하지 않은 입력
             } else {
                 let char = ["r", "k", "s", "f"][i % 4]
                 _ = inputContext.process(Int(Character(char).asciiValue!))

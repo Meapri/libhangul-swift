@@ -17,7 +17,7 @@ public enum LibHangulExamples {
         print("=== 기본 한글 입력 예제 ===")
 
         // 입력 컨텍스트 생성 (두벌식 키보드)
-        let context = LibHangul.createInputContext(keyboard: "2")
+        let context = LibHangul.createInputContextLegacy(keyboard: "2")
 
         // "안녕하세요" 입력 시뮬레이션
         let input = "dkssudgktpdy" // "안녕하세요"의 두벌식 자판 입력
@@ -51,14 +51,14 @@ public enum LibHangulExamples {
         print("=== 키보드 타입별 예제 ===")
 
         // 두벌식
-        let dubeol = LibHangul.createInputContext(keyboard: "2")
-        let dubeolResult = dubeol.processText("rk") // ㄱ + ㅏ
-        print("두벌식 'rk' -> '\(dubeolResult)'")
+        let dubeolResult = LibHangul.createInputContextLegacy(keyboard: "2")
+        let dubeolText = dubeolResult.processText("rk") // ㄱ + ㅏ
+        print("두벌식 'rk' -> '\(dubeolText)'")
 
         // 세벌식 (간단한 매핑으로 테스트)
-        let sebeol = LibHangul.createInputContext(keyboard: "3")
-        let sebeolResult = sebeol.processText("kf") // 세벌식 ㄱ + ㅏ
-        print("세벌식 'kf' -> '\(sebeolResult)'")
+        let sebeolResult = LibHangul.createInputContextLegacy(keyboard: "3")
+        let sebeolText = sebeolResult.processText("kf") // 세벌식 ㄱ + ㅏ
+        print("세벌식 'kf' -> '\(sebeolText)'")
 
         print()
     }
@@ -113,7 +113,7 @@ public enum LibHangulExamples {
     public static func realtimeInputSimulation() {
         print("=== 실시간 입력 시뮬레이션 ===")
 
-        let context = LibHangul.createInputContext(keyboard: "2")
+        let context = LibHangul.createInputContextLegacy(keyboard: "2")
 
         // "안녕하세요"의 자모 입력 시퀀스
         let inputSequence = [
@@ -167,7 +167,7 @@ public enum LibHangulExamples {
     public static func optionsExample() {
         print("=== 옵션 사용 예제 ===")
 
-        let context = LibHangul.createInputContext(keyboard: "2")
+        let context = LibHangul.createInputContextLegacy(keyboard: "2")
 
         // 옵션 설정
         context.setOption(.autoReorder, value: true)

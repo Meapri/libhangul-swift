@@ -10,15 +10,51 @@
 import Foundation
 
 /// 한글 입력 오류 타입
-enum HangulInputError: Error {
-    case bufferOverflow
+public enum HangulInputError: Error, Sendable {
+    case bufferOverflow(maxSize: Int)
     case invalidJamo(UCSChar)
-    case inconsistentBufferState
-    case unicodeNormalizationFailed
+    case inconsistentBufferState(reason: String)
+    case unicodeNormalizationFailed(reason: String)
+    case keyboardNotFound(identifier: String)
+    case configurationError(reason: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .bufferOverflow(let maxSize):
+            return "버퍼가 가득 찼습니다 (최대 크기: \(maxSize))"
+        case .invalidJamo(let jamo):
+            return "잘못된 자모 코드: 0x\(String(format: "%04X", jamo))"
+        case .inconsistentBufferState(let reason):
+            return "버퍼 상태가 일관되지 않음: \(reason)"
+        case .unicodeNormalizationFailed(let reason):
+            return "유니코드 정규화 실패: \(reason)"
+        case .keyboardNotFound(let identifier):
+            return "키보드를 찾을 수 없음: \(identifier)"
+        case .configurationError(let reason):
+            return "설정 오류: \(reason)"
+        }
+    }
+
+    public var recoverySuggestion: String? {
+        switch self {
+        case .bufferOverflow:
+            return "입력을 줄이거나 버퍼 크기를 늘려보세요"
+        case .invalidJamo:
+            return "올바른 한글 자모를 입력하세요"
+        case .inconsistentBufferState:
+            return "입력 컨텍스트를 재설정해보세요"
+        case .unicodeNormalizationFailed:
+            return "텍스트의 유니코드 형식을 확인하세요"
+        case .keyboardNotFound:
+            return "지원되는 키보드 식별자를 확인하세요"
+        case .configurationError:
+            return "설정 값을 다시 확인하세요"
+        }
+    }
 }
 
 /// 입력 컨텍스트 옵션
-public enum HangulInputContextOption: Int {
+public enum HangulInputContextOption: Int, Sendable {
     case autoReorder = 0              // 자동 재정렬
     case combinationOnDoubleStroke = 1 // 두 번 입력시 결합
     case nonChoseongCombination = 2    // 초성 결합 허용
@@ -54,11 +90,13 @@ public final class HangulInputContext {
     /// 입력 버퍼
     private let buffer: HangulBuffer
 
-    /// 사전 편집 문자열 (조합중인 문자열)
+    /// 사전 편집 문자열 (조합중인 문자열) - 효율적인 메모리 관리
     private var preeditString: [UCSChar] = []
+    private var preeditStringCapacity: Int = 16
 
-    /// 커밋된 문자열
+    /// 커밋된 문자열 - 효율적인 메모리 관리
     private var commitString: [UCSChar] = []
+    private var commitStringCapacity: Int = 64
 
     /// 출력 모드
     public private(set) var outputMode: HangulOutputMode = .syllable
@@ -86,20 +124,20 @@ public final class HangulInputContext {
 
     /// 버퍼 상태 모니터링 활성화
     public var enableBufferMonitoring: Bool {
-        get { configuration.enableBufferMonitoring }
-        set { configuration.enableBufferMonitoring = newValue }
+        get { configuration.forceBufferMonitoring }
+        set { configuration.forceBufferMonitoring = newValue }
     }
 
     /// 자동 오류 복구
     public var autoErrorRecovery: Bool {
-        get { configuration.autoErrorRecovery }
-        set { configuration.autoErrorRecovery = newValue }
+        get { configuration.forceAutoErrorRecovery }
+        set { configuration.forceAutoErrorRecovery = newValue }
     }
 
     /// 파일명 호환성 모드
     public var filenameCompatibilityMode: Bool {
-        get { configuration.filenameCompatibilityMode }
-        set { configuration.filenameCompatibilityMode = newValue }
+        get { configuration.forceFilenameCompatibilityMode }
+        set { configuration.forceFilenameCompatibilityMode = newValue }
     }
 
     /// 델리게이트
@@ -141,61 +179,75 @@ public final class HangulInputContext {
     /// - Parameter key: ASCII 키 코드
     /// - Returns: 키가 처리되었으면 true
     public func process(_ key: Int) -> Bool {
+        let result = processKey(key)
+        switch result {
+        case .success(let processed):
+            return processed
+        case .failure(let error):
+            handleError(error, for: key)
+            return false
+        }
+    }
+
+    /// Result 타입을 사용한 키 입력 처리 (내부 메서드)
+    /// - Parameter key: ASCII 키 코드
+    /// - Returns: 처리 결과
+    private func processKey(_ key: Int) -> Result<Bool, HangulInputError> {
+        guard let keyboard = keyboard else {
+            return .failure(.keyboardNotFound(identifier: "nil"))
+        }
+
+        // 키 코드 유효성 검증 (음수 방지)
+        guard key >= 0 && key <= 0x10FFFF else {
+            return .failure(.invalidJamo(UCSChar(0)))
+        }
+
+        // 키 매핑
+        let jamo = keyboard.mapKey(key)
+
+        // 백스페이스 처리
+        if key == 8 || key == 0x7F { // Backspace or Delete
+            let result = backspace()
+            return .success(result)
+        }
+
+        if jamo == 0 {
+            // NULL 문자는 유효하지 않은 입력으로 처리
+            if key == 0 {
+                return .success(false)
+            }
+
+            // 매핑되지 않은 키는 영어/기호로 처리하여 바로 커밋
+            if !buffer.isEmpty {
+                let flushResult = safeFlush()
+                if case .failure(let error) = flushResult {
+                    return .failure(error)
+                }
+            }
+            let charValue = UCSChar(key)
+            commitString.append(charValue)
+            return .success(true)
+        }
+
+        // 한글 자모가 아닌 경우
+        if !HangulCharacter.isJamo(jamo) {
+            let flushResult = safeFlush()
+            if case .failure(let error) = flushResult {
+                return .failure(error)
+            }
+            commitString.append(jamo)
+            return .success(true)
+        }
+
+        // 한글 자모 처리
         do {
-            guard let keyboard = keyboard else { return false }
-
-            // 키 코드 유효성 검증 (음수 방지)
-            guard key >= 0 && key <= 0x10FFFF else {
-                delegate?.hangulInputContext(self, didProcess: key, result: false)
-                return false
-            }
-
-            // 키 매핑
-            let jamo = keyboard.mapKey(key)
-
-            // 백스페이스 처리
-            if key == 8 || key == 0x7F { // Backspace or Delete
-                let result = backspace()
-                delegate?.hangulInputContext(self, didProcess: key, result: result)
-                return result
-            }
-            if jamo == 0 {
-                // NULL 문자는 유효하지 않은 입력으로 처리
-                if key == 0 {
-                    delegate?.hangulInputContext(self, didProcess: key, result: false)
-                    return false
-                }
-
-                // 매핑되지 않은 키는 영어/기호로 처리하여 바로 커밋
-                // 이전 내용이 있다면 flush (영어 입력 시에는 보통 비어있음)
-                if !buffer.isEmpty {
-                    let _ = safeFlush() // 안전하게 이전 내용 flush 처리
-                }
-                let charValue = UCSChar(key)
-                commitString.append(charValue)
-                delegate?.hangulInputContext(self, didProcess: key, result: true)
-                return true
-            }
-
-            // 한글 자모가 아닌 경우 (영어, 숫자, 기호 등) - 하지만 이 케이스는 jamo == 0에서 처리됨
-            if !HangulCharacter.isJamo(jamo) {
-                let _ = safeFlush() // 안전하게 이전 내용 flush 처리
-                commitString.append(jamo)
-                delegate?.hangulInputContext(self, didProcess: key, result: true)
-                return true
-            }
-
-            // 한글 자모 처리
             let result = try processJamoWithValidation(jamo)
             updatePreeditString()
-            delegate?.hangulInputContext(self, didProcess: key, result: result)
-            return result
-
+            return .success(result)
+        } catch let error as HangulInputError {
+            return .failure(error)
         } catch {
-            // 입력 처리 오류 발생 시 복구
-            recoverFromError()
-            delegate?.hangulInputContext(self, didProcess: key, result: false)
-            return false
+            return .failure(.inconsistentBufferState(reason: error.localizedDescription))
         }
     }
 
@@ -208,7 +260,10 @@ public final class HangulInputContext {
 
         // 버퍼가 가득 찼는지 확인
         if buffer.getJamoString().count >= maxBufferSize {
-            let _ = safeFlush() // 안전하게 flush
+            let flushResult = safeFlush()
+            if case .failure(let error) = flushResult {
+                throw error
+            }
         }
 
         // 입력 전 버퍼 상태 저장 (완성된 음절 감지용)
@@ -236,33 +291,28 @@ public final class HangulInputContext {
 
             // 완성된 음절이 있는지 확인하고 커밋
             let afterPush = buffer.buildSyllable()
-            print("DEBUG: buffer.push success, beforePush: 0x\(String(format: "%04X", beforePush)), afterPush: 0x\(String(format: "%04X", afterPush))")
 
             if beforePush != 0 && afterPush != 0 && beforePush != afterPush {
                 // 이전 음절이 완성되었으므로 커밋
                 commitString.append(beforePush)
-                print("DEBUG: committed beforePush: 0x\(String(format: "%04X", beforePush))")
 
                 // 현재 완성된 음절이 있으면 다시 커밋
                 if afterPush != 0 {
                     commitString.append(afterPush)
-                    print("DEBUG: committed afterPush: 0x\(String(format: "%04X", afterPush))")
                     // 버퍼 초기화 (현재 음절 처리 완료)
                     buffer.clear()
                 }
             } else if afterPush != 0 {
                 // 완성된 음절이 있으면 커밋
                 commitString.append(afterPush)
-                print("DEBUG: committed afterPush: 0x\(String(format: "%04X", afterPush))")
                 // 버퍼 초기화 - 하지만 종성 입력 시에는 초기화하지 않음
                 if !HangulCharacter.isJongseong(processedJamo) {
                     buffer.clear()
                 }
-            } else {
-                print("DEBUG: no syllable to commit")
             }
 
-
+            // 배열 용량 관리
+            manageArrayCapacity()
         }
 
         return success
@@ -302,8 +352,26 @@ public final class HangulInputContext {
     /// 버퍼 초기화
     public func reset() {
         buffer.clear()
-        preeditString.removeAll()
-        commitString.removeAll()
+        preeditString = []
+        commitString = []
+        // 용량 재설정 (메모리 효율성)
+        preeditString.reserveCapacity(preeditStringCapacity)
+        commitString.reserveCapacity(commitStringCapacity)
+    }
+
+    /// 효율적인 배열 크기 관리
+    private func manageArrayCapacity() {
+        // preeditString 용량 관리
+        if preeditString.count > preeditStringCapacity {
+            preeditStringCapacity = preeditString.count * 2
+            preeditString.reserveCapacity(preeditStringCapacity)
+        }
+
+        // commitString 용량 관리
+        if commitString.count > commitStringCapacity {
+            commitStringCapacity = commitString.count * 2
+            commitString.reserveCapacity(commitStringCapacity)
+        }
     }
 
     /// 현재 사전 편집 문자열 반환
@@ -316,7 +384,8 @@ public final class HangulInputContext {
     /// - Returns: 커밋된 문자열
     public func getCommitString() -> [UCSChar] {
         let result = commitString
-        commitString.removeAll()
+        commitString = []
+        commitString.reserveCapacity(commitStringCapacity) // 용량 유지
         return result
     }
 
@@ -332,7 +401,12 @@ public final class HangulInputContext {
     /// - Returns: 커밋된 문자열
     public func flush() -> [UCSChar] {
         let result = safeFlush()
-        return ensureCrossPlatformCompatibility(result)
+        switch result {
+        case .success(let data):
+            return ensureCrossPlatformCompatibility(data)
+        case .failure:
+            return []
+        }
     }
 
     /// 기존 flush 메서드 (하위 호환성)
@@ -425,19 +499,32 @@ public final class HangulInputContext {
         return isValidRange
     }
 
-    /// 안전한 버퍼 플러시
-    private func safeFlush() -> [UCSChar] {
+    /// 안전한 버퍼 플러시 (Result 타입 반환)
+    private func safeFlush() -> Result<[UCSChar], HangulInputError> {
         do {
             let result = try flushWithValidation()
-            return normalizeUnicode(result)
-        } catch {
+            return .success(normalizeUnicode(result))
+        } catch let error as HangulInputError {
             // 오류 복구 시도
             recoverFromError()
+            return .failure(error)
+        } catch {
+            // 예상치 못한 오류
+            recoverFromError()
+            return .failure(.inconsistentBufferState(reason: error.localizedDescription))
+        }
+    }
 
-            // 최소한의 데이터라도 보존
+    /// 호환성을 위한 기존 safeFlush 메서드
+    private func safeFlushLegacy() -> [UCSChar] {
+        let result = safeFlush()
+        switch result {
+        case .success(let data):
+            return data
+        case .failure:
+            // 오류 시 최소한의 데이터라도 보존
             let preservedData = commitString
             commitString.removeAll()
-
             return normalizeUnicode(preservedData)
         }
     }
@@ -497,7 +584,7 @@ public final class HangulInputContext {
 
         // 버퍼 크기 검증
         guard jamoString.count <= maxBufferSize else {
-            throw HangulInputError.bufferOverflow
+            throw HangulInputError.bufferOverflow(maxSize: maxBufferSize)
         }
 
         // 자모 유효성 검증
@@ -511,7 +598,7 @@ public final class HangulInputContext {
         if jamoString.count > 0 && jamoString.count <= 3 {
             // 유효한 조합 상태로 간주
         } else if jamoString.count > 3 {
-            throw HangulInputError.bufferOverflow
+            throw HangulInputError.bufferOverflow(maxSize: maxBufferSize)
         }
     }
 
@@ -526,6 +613,23 @@ public final class HangulInputContext {
 
         // 델리게이트에 오류 알림
         delegate?.hangulInputContext(self, didTransition: 0, preedit: [])
+    }
+
+    /// 에러 처리 헬퍼 메서드
+    private func handleError(_ error: HangulInputError, for key: Int) {
+        // 로그 기록
+        print("HangulInputContext 에러: \(error.errorDescription ?? "알 수 없는 오류")")
+
+        // 복구 제안이 있으면 로그에 기록
+        if let suggestion = error.recoverySuggestion {
+            print("복구 제안: \(suggestion)")
+        }
+
+        // 오류 복구
+        recoverFromError()
+
+        // 델리게이트에 오류 알림
+        delegate?.hangulInputContext(self, didProcess: key, result: false)
     }
 
     /// 파일명용 정규화 (강제 NFC)
@@ -691,3 +795,4 @@ extension HangulInputContext {
         return description.isEmpty ? "비어있음" : description
     }
 }
+
