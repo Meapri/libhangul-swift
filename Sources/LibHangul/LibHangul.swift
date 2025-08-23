@@ -11,42 +11,8 @@ import Foundation
 
 // MARK: - Memory Management
 
-/// 객체 재사용을 위한 제네릭 객체 풀
-public final class ObjectPool<T: AnyObject> {
-    private let capacity: Int
-    private var pool: [T] = []
-    private let queue = DispatchQueue(label: "com.libhangul.objectpool", attributes: .concurrent)
-
-    public init(capacity: Int) {
-        self.capacity = capacity
-    }
-
-    /// 객체를 빌리거나 새로 생성
-    public func borrow(_ factory: () -> T) -> T {
-        queue.sync {
-            if let object = pool.popLast() {
-                return object
-            }
-            return factory()
-        }
-    }
-
-    /// 객체를 반환
-    public func `return`(_ object: T) {
-        queue.async {
-            if self.pool.count < self.capacity {
-                self.pool.append(object)
-            }
-        }
-    }
-
-    /// 풀 비우기
-    public func clear() {
-        queue.sync {
-            pool.removeAll()
-        }
-    }
-}
+// ObjectPool 클래스는 현재 사용되지 않으므로 제거되었습니다.
+// 필요시 재구현할 때 Sendable 프로토콜을 고려하여 설계해야 합니다.
 
 // MARK: - Error Handling
 
@@ -361,6 +327,9 @@ public enum LibHangul {
     /// - Returns: 자모 배열
     public static func decomposeHangul(_ string: String) -> [String] {
         string.unicodeScalars.compactMap { scalar in
+            // 먼저 한글 음절인지 확인
+            guard HangulCharacter.isSyllable(UCSChar(scalar.value)) else { return nil }
+
             let jamo = HangulCharacter.syllableToJamo(UCSChar(scalar.value))
             guard jamo.isValid else { return nil }
 

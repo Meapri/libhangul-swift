@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
     name: "LibHangul",
     platforms: [
-        .macOS(.v10_15),
+        .macOS(.v13),
         .iOS(.v13),
         .tvOS(.v13),
         .watchOS(.v6),
@@ -15,18 +15,6 @@ let package = Package(
         .library(
             name: "LibHangul",
             targets: ["LibHangul"]
-        ),
-        .executable(
-            name: "HybridSolutionDemo",
-            targets: ["HybridSolutionDemo"]
-        ),
-        .executable(
-            name: "HangulDemo",
-            targets: ["HangulDemo"]
-        ),
-        .executable(
-            name: "HanjaDemo",
-            targets: ["HanjaDemo"]
         )
     ],
     dependencies: [],
@@ -39,24 +27,7 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
-        .executableTarget(
-            name: "HybridSolutionDemo",
-            dependencies: ["LibHangul"],
-            path: "Sources/Demos",
-            sources: ["HybridSolutionDemo.swift"]
-        ),
-        .executableTarget(
-            name: "HangulDemo",
-            dependencies: ["LibHangul"],
-            path: "Sources/Demos",
-            sources: ["demo.swift"]
-        ),
-        .executableTarget(
-            name: "HanjaDemo",
-            dependencies: ["LibHangul"],
-            path: "Sources/Demos",
-            sources: ["hanja-demo.swift"]
-        ),
+
         .testTarget(
             name: "LibHangulTests",
             dependencies: ["LibHangul"],
@@ -66,5 +37,5 @@ let package = Package(
             ]
         )
     ],
-    swiftLanguageVersions: [.v6]
+    swiftLanguageModes: [.v6]
 )
