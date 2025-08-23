@@ -330,20 +330,13 @@ public final class HangulInputContext {
             }
         }
 
-        // 2. 버퍼가 비어있고, 조합중인 입력이 없는 경우에만 커밋된 문자열에서 제거
-        // (완성된 음절은 백스페이스로 지울 수 없음)
+        // 2. 버퍼가 비어있고, 조합중인 입력이 없는 경우 커밋된 문자열에서 제거
+        // (완성된 음절도 백스페이스로 지울 수 있어야 함)
         if !commitString.isEmpty && buffer.isEmpty {
-            // 최근 커밋된 내용이 완성된 음절인지 확인
-            let lastCommitted = commitString.last
-            if let lastChar = lastCommitted, HangulCharacter.isSyllable(lastChar) {
-                // 완성된 음절인 경우 지우지 않음
-                return false
-            } else {
-                // 일반 문자인 경우 지움
-                _ = commitString.removeLast()
-                delegate?.hangulInputContext(self, didProcess: 8, result: true)
-                return true
-            }
+            // 최근 커밋된 내용을 지움 (완성된 음절이든 일반 문자든)
+            _ = commitString.removeLast()
+            delegate?.hangulInputContext(self, didProcess: 8, result: true)
+            return true
         }
 
         return false

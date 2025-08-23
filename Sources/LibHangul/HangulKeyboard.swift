@@ -88,21 +88,22 @@ public class HangulKeyboard {
         keyMap[Int(Character("v").asciiValue!)] = 0x1111  // ㅍ
         keyMap[Int(Character("g").asciiValue!)] = 0x1112  // ㅎ
 
-        // 모음
+        // 모음 - 두벌식 표준 매핑
         keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
-        // 'o' 키는 초성(ㅇ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
+        keyMap[Int(Character("o").asciiValue!)] = 0x1169  // ㅗ (초성 매핑보다 우선)
         keyMap[Int(Character("i").asciiValue!)] = 0x1163  // ㅑ
         keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ
         keyMap[Int(Character("j").asciiValue!)] = 0x1165  // ㅓ
-        // 'e' 키는 영어 입력용으로 남겨두므로 중성 매핑에서 제외
+        keyMap[Int(Character("e").asciiValue!)] = 0x1166  // ㅔ
+        keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ (p도 동일하게 매핑)
         keyMap[Int(Character("u").asciiValue!)] = 0x1167  // ㅕ
         keyMap[Int(Character("P").asciiValue!)] = 0x1168  // ㅖ
-        // 'h' 키는 초성(ㄲ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
+        keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ (초성 매핑보다 우선)
         keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ
         keyMap[Int(Character("n").asciiValue!)] = 0x116E  // ㅜ
         keyMap[Int(Character("b").asciiValue!)] = 0x1172  // ㅠ
         keyMap[Int(Character("m").asciiValue!)] = 0x1173  // ㅡ
-        // 'l' 키는 초성(ㅅ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
+        keyMap[Int(Character("l").asciiValue!)] = 0x1175  // ㅣ (초성 매핑보다 우선)
 
         // 종성 위치
         keyMap[Int(Character("F").asciiValue!)] = 0x11A8  // ㄱ
@@ -136,8 +137,7 @@ public final class HangulKeyboardDefault: HangulKeyboard {
     private func setupAdditionalMappings() {
         // 1 키를 종성 ㄴ으로 매핑 (두벌식용)
         keyMap[Int(Character("1").asciiValue!)] = 0x11AB  // ㄴ (종성용)
-        // 영어 입력용 키에서 한글 매핑 제거
-        keyMap[Int(Character("a").asciiValue!)] = nil
+        // 불필요한 매핑 제거를 하지 않음 - 모든 키가 한글 입력에 사용되도록 함
     }
 
     public override func mapKey(_ key: Int) -> UCSChar {

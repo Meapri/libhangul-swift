@@ -109,9 +109,13 @@ final class HangulInputContextTests: XCTestCase {
         let processed2 = inputContext.process(Int(Character("k").asciiValue!)) // ㅏ
         XCTAssertTrue(processed2, "중성 ㅏ 입력 성공")
 
-        // 조합이 완료되었으므로 백스페이스로는 지울 수 없음
+        // 완성된 음절도 백스페이스로 지울 수 있음 (새로운 로직)
         let backspaceResult = inputContext.backspace()
-        XCTAssertFalse(backspaceResult)
+        XCTAssertTrue(backspaceResult)
+
+        // 음절이 지워졌는지 확인
+        let commitAfterBackspace = inputContext.getCommitString()
+        XCTAssertEqual(commitAfterBackspace.count, 0, "완성된 음절이 백스페이스로 지워져야 함")
 
         // 새로운 자모 입력 후 백스페이스
         let processed3 = inputContext.process(Int(Character("r").asciiValue!)) // ㄱ

@@ -9,7 +9,7 @@ print("===================\n")
 
 // 1. 기본적인 한글 입력
 print("1. 기본적인 한글 입력:")
-let context = LibHangul.createInputContext(keyboard: "2") // 두벌식
+let context = LibHangul.createInputContextLegacy(keyboard: "2") // 두벌식
 
 // "안녕" 입력 시뮬레이션 (관용 입력 모드로 종성 ㄴ 자동 변환)
 print("=== '안녕' 입력 테스트 (관용 입력 모드) ===")
@@ -77,13 +77,13 @@ print("  결과: '\(an ?? "실패")\(nyeong ?? "실패")'")
 
 // 방법 2: 관용 입력 모드 사용
 print("방법 2: 관용 입력 모드 사용")
-let context2 = LibHangul.createInputContext(keyboard: "2")
+let context2 = LibHangul.createInputContextLegacy(keyboard: "2")
 context2.enableIdiomaticInput = true // 관용 입력 모드 활성화
 print("  'dkssud' 입력 시 초성 ㄷ이 종성 ㄴ으로 자동 변환됨")
 
 // 방법 3: 세벌식 사용
 print("방법 3: 세벌식 사용")
-let context3 = LibHangul.createInputContext(keyboard: "3")
+let context3 = LibHangul.createInputContextLegacy(keyboard: "3")
 print("  세벌식에서는 초성과 종성을 완벽하게 구분하여 입력 가능")
 
 // 추가 예제들
@@ -92,7 +92,7 @@ print("=== 더 많은 한글 입력 예제 ===")
 // "안녕하세요" 예제
 print("• '안녕하세요' 입력 예제 (현재 구현의 한계로 인해 간단한 예제로 대체)")
 let simpleInput = "dk"  // d + k = 아
-let simpleContext = LibHangul.createInputContext(keyboard: "2")
+let simpleContext = LibHangul.createInputContextLegacy(keyboard: "2")
 
 var simpleResult = ""
 for char in simpleInput {
