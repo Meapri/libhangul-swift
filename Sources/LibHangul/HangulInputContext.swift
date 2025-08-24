@@ -13,6 +13,7 @@ import Foundation
 public enum HangulInputError: Error, Sendable {
     case bufferOverflow(maxSize: Int)
     case invalidJamo(UCSChar)
+    case invalidKeyCode(Int)
     case inconsistentBufferState(reason: String)
     case unicodeNormalizationFailed(reason: String)
     case keyboardNotFound(identifier: String)
@@ -24,6 +25,8 @@ public enum HangulInputError: Error, Sendable {
             return "버퍼가 가득 찼습니다 (최대 크기: \(maxSize))"
         case .invalidJamo(let jamo):
             return "잘못된 자모 코드: 0x\(String(format: "%04X", jamo))"
+        case .invalidKeyCode(let keyCode):
+            return "잘못된 키 코드: \(keyCode)"
         case .inconsistentBufferState(let reason):
             return "버퍼 상태가 일관되지 않음: \(reason)"
         case .unicodeNormalizationFailed(let reason):
@@ -41,6 +44,8 @@ public enum HangulInputError: Error, Sendable {
             return "입력을 줄이거나 버퍼 크기를 늘려보세요"
         case .invalidJamo:
             return "올바른 한글 자모를 입력하세요"
+        case .invalidKeyCode:
+            return "올바른 키 코드를 입력하세요"
         case .inconsistentBufferState:
             return "입력 컨텍스트를 재설정해보세요"
         case .unicodeNormalizationFailed:
@@ -77,6 +82,8 @@ public protocol HangulInputContextDelegate: AnyObject {
 
 /// 한글 입력 컨텍스트
 /// C 코드의 struct _HangulInputContext에 대응
+/// 참고: Swift 6 동시성 제한으로 인해 이 클래스는 Sendable이 아닙니다.
+/// 동시성 환경에서는 각 스레드/액터별로 독립적인 인스턴스를 생성하세요.
 public final class HangulInputContext {
 
     // MARK: - Properties
@@ -199,7 +206,7 @@ public final class HangulInputContext {
 
         // 키 코드 유효성 검증 (음수 방지)
         guard key >= 0 && key <= 0x10FFFF else {
-            return .failure(.invalidJamo(UCSChar(0)))
+            return .failure(.invalidKeyCode(key))
         }
 
         // 키 매핑

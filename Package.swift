@@ -28,6 +28,26 @@ let package = Package(
             ]
         ),
 
+        .executableTarget(
+            name: "demo",
+            dependencies: ["LibHangul"],
+            path: "Examples",
+            sources: ["demo.swift"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+
+        .executableTarget(
+            name: "final-test",
+            dependencies: ["LibHangul"],
+            path: ".",
+            sources: ["final_test.swift"],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+
         .testTarget(
             name: "LibHangulTests",
             dependencies: ["LibHangul"],
