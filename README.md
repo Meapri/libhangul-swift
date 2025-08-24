@@ -742,6 +742,208 @@ let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
 let result = await context.processText("안녕하세요")
 ```
 
+## 🖥️ **플랫폼별 권장 사용법**
+
+### **macOS 입력기 개발**
+
+**macOS 입력기에서는 `ThreadSafeHangulInputContext`를 반드시 사용해야 합니다.**
+
+#### **macOS Input Method Kit 통합**
+```swift
+import LibHangul
+import InputMethodKit
+
+class KoreanInputMethod: IMKInputController {
+    private let context: ThreadSafeHangulInputContext
+    
+    override init!(server: IMKServer!, delegate: Any!, client: Any!) {
+        super.init(server: server, delegate: delegate, client: client)
+        
+        // macOS 특화 설정
+        let config = HangulInputConfiguration(
+            maxBufferSize: 32,
+            forceNFCNormalization: true,
+            enableBufferMonitoring: true,
+            autoErrorRecovery: true,
+            filenameCompatibilityMode: true,
+            performanceMode: .balanced
+        )
+        
+        self.context = LibHangul.createThreadSafeInputContext(configuration: config)
+    }
+    
+    override func inputText(_ text: String!, client sender: Any!) -> Bool {
+        guard let text = text else { return false }
+        
+        Task { @MainActor in
+            // 안전한 한글 처리
+            let result = await self.context.processText(text)
+            
+            // 사전 편집 문자열 업데이트
+            let preedit = result.preedit
+                .compactMap { UnicodeScalar($0) }
+                .map { String($0) }
+                .joined()
+            
+            // 커밋할 내용이 있으면 커밋
+            if !result.committed.isEmpty {
+                let committedText = result.committed
+                    .compactMap { UnicodeScalar($0) }
+                    .map { String($0) }
+                    .joined()
+                
+                await self.commitTextToClient(committedText)
+            }
+        }
+        
+        return true
+    }
+    
+    @MainActor
+    private func commitTextToClient(_ text: String) async {
+        guard let client = client() else { return }
+        client.insertText(text, 
+                         replacementRange: NSRange(location: NSNotFound, length: 0))
+    }
+}
+```
+
+#### **macOS 특화 고려사항**
+```swift
+// 1. 메모리 최적화 (시스템 컴포넌트로 장시간 실행)
+let config = HangulInputConfiguration.memoryOptimized
+let context = LibHangul.createThreadSafeInputContext(configuration: config)
+
+// 2. 시스템 이벤트 처리
+actor KeyboardManager {
+    private var currentContext: ThreadSafeHangulInputContext
+    
+    func switchKeyboard(to keyboard: String) async {
+        currentContext = LibHangul.createThreadSafeInputContext(keyboard: keyboard)
+    }
+    
+    func handleSystemLanguageChange() async {
+        // 시스템 언어 변경 감지 시 안전한 전환
+        await switchKeyboard(to: "2y")
+    }
+}
+```
+
+### **iOS 키보드 확장**
+
+```swift
+import LibHangul
+
+class CustomKeyboardViewController: UIInputViewController {
+    private let context: ThreadSafeHangulInputContext
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // iOS 키보드 특화 설정
+        let config = HangulInputConfiguration(
+            maxBufferSize: 16,
+            forceNFCNormalization: true,
+            enableBufferMonitoring: false,
+            autoErrorRecovery: true,
+            filenameCompatibilityMode: false,
+            performanceMode: .speedOptimized
+        )
+        
+        self.context = LibHangul.createThreadSafeInputContext(configuration: config)
+    }
+    
+    override func textDidChange(_ textInput: UITextInput?) {
+        Task {
+            // 안전한 텍스트 처리
+            let result = await self.context.processText("한글")
+            
+            // UI 업데이트 (메인 스레드에서)
+            await MainActor.run {
+                self.updateTextField(with: result)
+            }
+        }
+    }
+    
+    @MainActor
+    private func updateTextField(with result: HangulInputResult) {
+        // UI 안전하게 업데이트
+        let text = result.committed
+            .compactMap { UnicodeScalar($0) }
+            .map { String($0) }
+            .joined()
+        
+        textDocumentProxy.insertText(text)
+    }
+}
+```
+
+### **서버 사이드 (Vapor, Perfect 등)**
+
+```swift
+import LibHangul
+
+actor HangulTextProcessor {
+    private var context: ThreadSafeHangulInputContext
+    
+    init() {
+        self.context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+    }
+    
+    func processUserInput(_ input: String) async -> String {
+        let result = await context.processText(input)
+        return result.committed
+            .compactMap { UnicodeScalar($0) }
+            .map { String($0) }
+            .joined()
+    }
+    
+    func batchProcess(_ inputs: [String]) async -> [String] {
+        return await withTaskGroup(of: String.self) { group in
+            for input in inputs {
+                group.addTask {
+                    let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+                    let result = await context.processText(input)
+                    return result.committed
+                        .compactMap { UnicodeScalar($0) }
+                        .map { String($0) }
+                        .joined()
+                }
+            }
+            
+            var results: [String] = []
+            for await result in group {
+                results.append(result)
+            }
+            return results
+        }
+    }
+}
+```
+
+### **단순 스크립트/CLI 도구**
+
+```swift
+import LibHangul
+
+// 단일 스레드 환경에서는 기존 API도 사용 가능 (deprecated 경고 있음)
+func simpleScript() {
+    let context = LibHangul.createInputContextLegacy(keyboard: "2")  // ⚠️ deprecated
+    let result = context.processText("안녕하세요")
+    print(result)
+}
+
+// 또는 새로운 API 사용 (더 안전)
+func safeSimpleScript() async {
+    let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+    let result = await context.processText("안녕하세요")
+    print(result.committed
+        .compactMap { UnicodeScalar($0) }
+        .map { String($0) }
+        .joined())
+}
+```
+
 #### **단계 2: Actor/함수에 async 추가**
 ```swift
 // Before
