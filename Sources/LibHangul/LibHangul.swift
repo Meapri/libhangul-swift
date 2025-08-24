@@ -345,11 +345,11 @@ public enum LibHangul {
         ThreadSafeHangulInputContext(keyboard: keyboard)
     }
 
-    /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성 (키보드 객체 지정)
-    /// - Parameter keyboard: 키보드 객체
+    /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성 (키보드 ID 지정)
+    /// - Parameter keyboardId: 키보드 식별자 (예: "2", "3", "2y")
     /// - Returns: 스레드 안전한 입력 컨텍스트
-    public static func createThreadSafeInputContext(keyboard: HangulKeyboard) -> ThreadSafeHangulInputContext {
-        ThreadSafeHangulInputContext(keyboard: keyboard)
+    public static func createThreadSafeInputContext(keyboardId: String) -> ThreadSafeHangulInputContext {
+        ThreadSafeHangulInputContext(keyboard: keyboardId)
     }
 
     /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성 (설정 지정)
