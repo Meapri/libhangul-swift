@@ -82,8 +82,10 @@ public protocol HangulInputContextDelegate: AnyObject {
 
 /// 한글 입력 컨텍스트
 /// C 코드의 struct _HangulInputContext에 대응
+/// ⚠️ DEPRECATED: 동시성 환경에서는 ThreadSafeHangulInputContext를 사용하세요
 /// 참고: Swift 6 동시성 제한으로 인해 이 클래스는 Sendable이 아닙니다.
-/// 동시성 환경에서는 각 스레드/액터별로 독립적인 인스턴스를 생성하세요.
+/// 단일 스레드 환경에서만 사용하세요.
+@available(*, deprecated, message: "동시성 환경에서는 ThreadSafeHangulInputContext를 사용하세요. 단일 스레드에서만 안전합니다.")
 public final class HangulInputContext {
 
     // MARK: - Properties

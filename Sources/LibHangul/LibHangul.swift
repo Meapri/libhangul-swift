@@ -293,8 +293,10 @@ public enum LibHangul {
     // MARK: - Input Context Creation
 
     /// 새로운 한글 입력 컨텍스트 생성 (Result 타입 반환)
+    /// ⚠️ DEPRECATED: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요
     /// - Parameter keyboard: 키보드 식별자 (기본값: "2" - 두벌식)
     /// - Returns: 생성된 컨텍스트 또는 오류
+    @available(*, deprecated, message: "동시성 환경에서는 createThreadSafeInputContext()를 사용하세요")
     public static func createInputContext(keyboard: String = "2") -> Result<HangulInputContext, HangulError> {
         do {
             let configuration = HangulInputConfiguration.safe(
@@ -310,8 +312,10 @@ public enum LibHangul {
     }
 
     /// 새로운 한글 입력 컨텍스트 생성 (키보드 객체 지정)
+    /// ⚠️ DEPRECATED: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요
     /// - Parameter keyboard: 키보드 객체
     /// - Returns: HangulInputContext 인스턴스
+    @available(*, deprecated, message: "동시성 환경에서는 createThreadSafeInputContext()를 사용하세요")
     public static func createInputContext(keyboard: HangulKeyboard) -> Result<HangulInputContext, HangulError> {
         do {
             let configuration = HangulInputConfiguration.safe()
@@ -324,19 +328,44 @@ public enum LibHangul {
     }
 
     /// 설정으로 한글 입력 컨텍스트 생성
+    /// ⚠️ DEPRECATED: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요
     /// - Parameter configuration: 입력 설정
     /// - Returns: 생성된 컨텍스트 또는 오류
+    @available(*, deprecated, message: "동시성 환경에서는 createThreadSafeInputContext()를 사용하세요")
     public static func createInputContext(with configuration: HangulInputConfiguration) -> Result<HangulInputContext, HangulError> {
         .success(HangulInputContext(configuration: configuration))
     }
 
+    // MARK: - Thread-Safe Input Context Creation (권장)
+
+    /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성
+    /// - Parameter keyboard: 키보드 식별자 (기본값: "2y")
+    /// - Returns: 스레드 안전한 입력 컨텍스트
+    public static func createThreadSafeInputContext(keyboard: String = "2y") -> ThreadSafeHangulInputContext {
+        ThreadSafeHangulInputContext(keyboard: keyboard)
+    }
+
+    /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성 (키보드 객체 지정)
+    /// - Parameter keyboard: 키보드 객체
+    /// - Returns: 스레드 안전한 입력 컨텍스트
+    public static func createThreadSafeInputContext(keyboard: HangulKeyboard) -> ThreadSafeHangulInputContext {
+        ThreadSafeHangulInputContext(keyboard: keyboard)
+    }
+
+    /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성 (설정 지정)
+    /// - Parameter configuration: 입력 설정
+    /// - Returns: 스레드 안전한 입력 컨텍스트
+    public static func createThreadSafeInputContext(configuration: HangulInputConfiguration) -> ThreadSafeHangulInputContext {
+        ThreadSafeHangulInputContext(configuration: configuration)
+    }
+
     /// 호환성을 위한 기존 생성자들
-    @available(*, deprecated, message: "Use createInputContext() that returns Result type")
+    @available(*, deprecated, message: "동시성 환경에서는 createThreadSafeInputContext()를 사용하세요")
     public static func createInputContextLegacy(keyboard: String = "2") -> HangulInputContext {
         HangulInputContext(keyboard: keyboard)
     }
 
-    @available(*, deprecated, message: "Use createInputContext() that returns Result type")
+    @available(*, deprecated, message: "동시성 환경에서는 createThreadSafeInputContext()를 사용하세요")
     public static func createInputContextLegacy(keyboard: HangulKeyboard) -> HangulInputContext {
         HangulInputContext(keyboard: keyboard)
     }

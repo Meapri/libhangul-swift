@@ -11,8 +11,10 @@ import Foundation
 
 /// 한글 입력 버퍼의 상태를 관리하는 클래스
 /// C 코드의 struct _HangulBuffer에 대응
+/// ⚠️ DEPRECATED: 동시성 환경에서는 ThreadSafeHangulInputContext를 사용하세요
 /// 참고: Swift 6 동시성 제한으로 인해 이 클래스는 Sendable이 아닙니다.
-/// 동시성 환경에서는 각 스레드/액터별로 독립적인 인스턴스를 생성하세요.
+/// 내부 구현용으로만 사용하세요.
+@available(*, deprecated, message: "동시성 환경에서는 ThreadSafeHangulInputContext를 사용하세요. 내부 구현용입니다.")
 public final class HangulBuffer {
     /// 초성
     public private(set) var choseong: UCSChar = 0

@@ -165,12 +165,35 @@ let results = await [result1, result2]
 print("동시 처리 결과: \(results)")
 ```
 
-### 🔧 **기존 API 호환성 유지**
+### 🛡️ **Swift 6 동시성 안전한 사용법 (권장)**
 
 ```swift
 import LibHangul
 
-// 기존 방식도 여전히 지원 (단, 동시성 환경에서는 ThreadSafeHangulInputContext 권장)
+// 🏆 권장: Swift 6 동시성 완전 안전
+let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+
+// async/await와 함께 안전하게 사용 가능
+let result = await context.processText("안녕하세요")
+print("처리 결과: \(result.committed)")
+
+// 여러 작업에서 동시에 사용 가능 (각각 독립적)
+let context1 = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+let context2 = LibHangul.createThreadSafeInputContext(keyboard: "3y")
+
+async let result1 = context1.processText("안녕")
+async let result2 = context2.processText("하세요")
+
+let results = await [result1, result2]
+print("동시 처리 결과: \(results)")
+```
+
+### ⚠️ **Deprecated API (단일 스레드 전용)**
+
+```swift
+import LibHangul
+
+// ⚠️ DEPRECATED: 단일 스레드에서만 사용 가능
 let context = LibHangul.createInputContext(keyboard: "2")
 
 // 키 입력 처리
@@ -461,8 +484,10 @@ let balancedContext = HangulInputContext(configuration: .default)
 
 #### 주요 메서드
 
-- `createInputContext(keyboard: String?) -> HangulInputContext`
-  - 새로운 입력 컨텍스트를 생성합니다.
+- `createThreadSafeInputContext(keyboard: String?) -> ThreadSafeHangulInputContext` 🏆 **권장**
+  - Swift 6 동시성 안전한 입력 컨텍스트를 생성합니다.
+- `createInputContext(keyboard: String?) -> Result<HangulInputContext, HangulError>` ⚠️ **Deprecated**
+  - 기존 입력 컨텍스트를 생성합니다 (단일 스레드 전용).
 - `availableKeyboards() -> [(id: String, name: String, type: HangulKeyboardType)]`
   - 사용 가능한 키보드 목록을 반환합니다.
 - `isHangulSyllable(_: String) -> Bool`
@@ -498,11 +523,38 @@ let balancedContext = HangulInputContext(configuration: .default)
 - `flush() -> [UCSChar]` - 모든 내용을 커밋합니다
 - `processBatch(_: [Int]) -> [HangulInputResult]` - 여러 키를 배치로 처리합니다
 
-### HangulInputContext
+### 🛡️ ThreadSafeHangulInputContext (권장)
+
+**Swift 6 동시성 환경에서 권장되는 스레드 안전한 한글 입력 컨텍스트 액터입니다.**
+
+#### 특징
+- **🔒 스레드 안전성**: Actor 기반의 완전한 동시성 안전성 보장
+- **⚡ Swift 6 완전 준수**: Sendable 프로토콜 완전 적용
+- **🚀 async/await 지원**: 현대적인 비동기 프로그래밍 패턴
+- **📦 독립적 인스턴스**: 각 액터/스레드별로 독립적인 컨텍스트 관리
+- **🎯 추천 사용**: 모든 새로운 프로젝트에서 우선 사용
+
+#### 생성자
+
+- `init(keyboard: String?, configuration: HangulInputConfiguration)` - 설정 기반 초기화
+- `init(keyboard: HangulKeyboard, configuration: HangulInputConfiguration)` - 키보드와 설정 지정
+- `init(configuration: HangulInputConfiguration)` - 설정만으로 초기화
+
+#### 주요 메서드
+
+- `process(_: Int) -> Bool` - ASCII 키 코드를 처리합니다
+- `processText(_: String) -> HangulInputResult` - 문자열을 입력으로 처리합니다
+- `getPreeditString() -> [UCSChar]` - 조합중인 문자열을 반환합니다
+- `getCommitString() -> [UCSChar]` - 커밋된 문자열을 반환하고 초기화합니다
+- `backspace() -> Bool` - 백스페이스 처리를 합니다
+- `flush() -> [UCSChar]` - 모든 내용을 커밋합니다
+- `processBatch(_: [Int]) -> [HangulInputResult]` - 여러 키를 배치로 처리합니다
+
+### ⚠️ HangulInputContext (Deprecated)
 
 한글 입력 상태를 관리하는 클래스입니다.
 
-**⚠️ 주의**: 동시성 환경에서는 `ThreadSafeHangulInputContext`를 사용하세요.
+**⚠️ DEPRECATED**: 동시성 환경에서는 `ThreadSafeHangulInputContext`를 사용하세요. 단일 스레드 환경에서만 안전합니다.
 
 #### 생성자
 
@@ -650,6 +702,107 @@ swift test --filter IntegrationTests
 swift test --filter HangulInputContextTests/testBasicHangulInput
 swift test --filter IntegrationTests/testJongseongInput
 ```
+
+## ⚠️ **Deprecated API 마이그레이션 가이드**
+
+### 📋 **마이그레이션 필요 대상**
+
+다음 API들은 Swift 6 동시성 환경에서 안전하지 않습니다:
+
+| Deprecated API | 권장 대체 API | 마이그레이션 난이도 |
+|---------------|---------------|------------------|
+| `HangulInputContext` | `ThreadSafeHangulInputContext` | ⭐⭐⭐ |
+| `LibHangul.createInputContext()` | `LibHangul.createThreadSafeInputContext()` | ⭐⭐ |
+| `HangulBuffer` | 내부적으로만 사용 | ⭐⭐⭐⭐⭐ |
+
+### 🔄 **간단한 마이그레이션 예제**
+
+#### **Before (Deprecated)**
+```swift
+// ⚠️ 동시성 환경에서 문제 발생 가능
+let context = LibHangul.createInputContext(keyboard: "2")
+let result = context.processText("안녕하세요")
+```
+
+#### **After (권장)**
+```swift
+// ✅ 동시성 환경에서 안전
+let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+let result = await context.processText("안녕하세요")
+```
+
+### 🎯 **마이그레이션 단계별 가이드**
+
+#### **단계 1: API 교체**
+```swift
+// 1. 생성자 교체
+let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+
+// 2. async/await 추가 (필요한 경우)
+let result = await context.processText("안녕하세요")
+```
+
+#### **단계 2: Actor/함수에 async 추가**
+```swift
+// Before
+func processText(_ text: String) -> String {
+    let context = LibHangul.createInputContext(keyboard: "2")
+    return context.processText(text)
+}
+
+// After
+func processText(_ text: String) async -> String {
+    let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+    return await context.processText(text).committed
+        .compactMap { UnicodeScalar($0) }
+        .map { Character($0) }
+        .joined()
+}
+```
+
+#### **단계 3: Task/Actor에서 사용**
+```swift
+// Task에서 안전하게 사용
+let task = Task {
+    let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+    return await context.processText("안녕하세요")
+}
+let result = await task.value
+
+// Actor에서 안전하게 사용
+actor TextProcessor {
+    func process(_ text: String) async -> String {
+        let context = LibHangul.createThreadSafeInputContext(keyboard: "2y")
+        return await context.processText(text).committed
+            .compactMap { UnicodeScalar($0) }
+            .map { Character($0) }
+            .joined()
+    }
+}
+```
+
+### 💡 **환경별 권장사항**
+
+| 환경 | 권장 API | 이유 |
+|------|----------|------|
+| **iOS 앱 (UI 스레드)** | `ThreadSafeHangulInputContext` | 안전성과 일관성 |
+| **서버 사이드 (동시 요청)** | `ThreadSafeHangulInputContext` | 동시성 안전성 필수 |
+| **단순 스크립트** | `HangulInputContext` (deprecated) | 기존 코드 호환성 |
+| **라이브러리 개발** | `ThreadSafeHangulInputContext` | 미래 호환성 |
+
+### ⚠️ **주의사항**
+
+1. **점진적 마이그레이션**: 한 번에 모든 코드를 변경하지 말고 점진적으로 진행
+2. **테스트 강화**: 마이그레이션 후 동시성 관련 테스트 추가
+3. **사용자 영향 최소화**: 기존 API는 deprecated로 유지
+4. **문서화**: 변경사항을 명확히 문서화
+
+### 🔍 **호환성 보장**
+
+- **기존 코드**: deprecated API로 계속 작동
+- **새로운 코드**: 권장 API 사용 권장
+- **하위 호환성**: v3.0.2까지의 API 완전 호환
+- **마이그레이션 지원**: 공식 문서와 예제 제공
 
 ### 📁 추가 폴더 설명
 
