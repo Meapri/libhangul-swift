@@ -286,22 +286,12 @@ public final class HangulInputContext {
 
         // 입력 전 버퍼 상태 저장 (완성된 음절 감지용)
         let beforePush = buffer.buildSyllable()
-
-        // 관용 입력 모드: 초성 ㄷ → 종성 ㄴ 자동 변환
+        
         var processedJamo = jamo
-        if enableIdiomaticInput && HangulCharacter.isChoseong(jamo) && jamo == 0x1102 { // ㄴ (nieun)
-            // 이전 입력이 초성이고 현재가 ㄴ(nieun)인 경우, 종성 ㄴ으로 변환 고려
-            // Note: 0x1102 is Choseong Nieun (ㄴ), not Digeut (ㄷ) as the original comment said.
-            if !buffer.isEmpty && buffer.choseong != 0 && buffer.jungseong == 0 {
-                processedJamo = 0x11AB // 종성 ㄴ
-            }
-        }
+        
+        // Removed hardcoded 'Idiomatic Input' (0x1102 check)
+        // Standardizing behavior: rely on pushChoseong logic to handle transitions.
 
-        // 추가: 초성 매핑을 종성으로 변환 (특정 키에 대한)
-        if jamo == 0x1102 && !buffer.isEmpty && buffer.choseong != 0 && buffer.jungseong != 0 {
-            // 초성 ㄴ이 입력되었고, 이미 초성과 중성이 있는 경우 종성 ㄴ으로 변환
-            processedJamo = 0x11AB // 종성 ㄴ
-        }
 
         // [New Logic] 음절 분리 확인 (Jongseong + Jungseong -> Next Syllable)
         if HangulCharacter.isJungseong(processedJamo) && buffer.jongseong != 0 {

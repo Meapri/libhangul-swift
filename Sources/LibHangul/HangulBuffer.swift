@@ -25,8 +25,8 @@ public final class HangulBuffer {
     /// 종성
     public private(set) var jongseong: UCSChar = 0
 
-    /// 자모 스택
-    private var stack: [UCSChar] = []
+    /// 자모 스택 (Unused in single-syllable buffer design, kept for API compatibility if needed, but removing logic)
+    // private var stack: [UCSChar] = [] // Removed
     private let maxStackSize: Int
 
     /// 최대 스택 크기
@@ -38,12 +38,9 @@ public final class HangulBuffer {
         self.maxStackSize = maxStackSize
     }
 
-    /// 현재 스택 인덱스
-    private var index: Int = 0
-
     /// 버퍼가 비어있는지 확인
     public var isEmpty: Bool {
-        choseong == 0 && jungseong == 0 && jongseong == 0 && stack.isEmpty
+        choseong == 0 && jungseong == 0 && jongseong == 0
     }
 
     /// 버퍼를 초기화
@@ -51,8 +48,6 @@ public final class HangulBuffer {
         choseong = 0
         jungseong = 0
         jongseong = 0
-        stack.removeAll(keepingCapacity: true)
-        index = 0
     }
 
     /// 자모를 버퍼에 추가
@@ -75,11 +70,8 @@ public final class HangulBuffer {
     /// 마지막 자모를 제거하고 반환
     /// - Returns: 제거된 자모, 없으면 0
     public func pop() -> UCSChar {
-        if !stack.isEmpty {
-            return stack.removeLast()
-        }
+        // 스택 제거됨, 오직 현재 음절 내에서만 pop
 
-        // 스택이 비어있으면 현재 상태에서 제거
         if jongseong != 0 {
             // 복합 종성 분해 시도
             let (first, second) = HangulCharacter.decomposeJongseong(jongseong)
@@ -138,7 +130,6 @@ public final class HangulBuffer {
             result.append(jongseong)
         }
 
-        result.append(contentsOf: stack)
         return result
     }
 
@@ -202,104 +193,72 @@ public final class HangulBuffer {
         return false
     }
 
-    private func combineChoseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
-        // 초성 결합 규칙 (간단한 버전)
-        let combinations: [UCSChar: [UCSChar: UCSChar]] = [
-            0x1100: [0x1100: 0x1101], // ㄱ + ㄱ = ㄲ
-            0x1102: [0x1102: 0x1103], // ㄷ + ㄷ = ㄸ
-            0x1107: [0x1107: 0x1108], // ㅂ + ㅂ = ㅃ
-            0x1109: [0x1109: 0x110A], // ㅅ + ㅅ = ㅆ
-            0x110C: [0x110C: 0x110D]  // ㅈ + ㅈ = ㅉ
-        ]
+    // MARK: - Optimization Tables (Static)
+    
+    private static let choseongCombinations: [UCSChar: [UCSChar: UCSChar]] = [
+        0x1100: [0x1100: 0x1101], // ㄱ + ㄱ = ㄲ
+        0x1102: [0x1102: 0x1103], // ㄷ + ㄷ = ㄸ
+        0x1107: [0x1107: 0x1108], // ㅂ + ㅂ = ㅃ
+        0x1109: [0x1109: 0x110A], // ㅅ + ㅅ = ㅆ
+        0x110C: [0x110C: 0x110D]  // ㅈ + ㅈ = ㅉ
+    ]
 
-        return combinations[a]?[b]
+    private static let jungseongCombinations: [UCSChar: [UCSChar: UCSChar]] = [
+        0x1169: [
+            0x1161: 0x116A, 0x1162: 0x116B, 0x1175: 0x116C
+        ],
+        0x116E: [
+            0x1165: 0x116F, 0x1166: 0x1170, 0x1175: 0x1171
+        ],
+        0x1173: [0x1175: 0x1174],
+        0x1161: [0x1175: 0x1162],
+        0x1163: [0x1175: 0x1164],
+        0x1165: [0x1175: 0x1166],
+        0x1167: [0x1175: 0x1168]
+    ]
+    
+    private static let jongseongCombinations: [UCSChar: [UCSChar: UCSChar]] = [
+        // ㄱ (0x11A8) -> ㄲ, ㄳ
+        0x11A8: [
+            0x11A8: 0x11A9, // ㄱ + ㄱ = ㄲ
+            0x11BA: 0x11AA  // ㄱ + ㅅ = ㄳ
+        ],
+        // ㄴ (0x11AB) -> ㄵ, ㄶ
+        0x11AB: [
+            0x11BD: 0x11AC, // ㄴ + ㅈ = ㄵ
+            0x11C2: 0x11AD  // ㄴ + ㅎ = ㄶ
+        ],
+        // ㄹ (0x11AF) -> ㄺ, ㄻ, ㄼ, ㄽ, ㄾ, ㄿ, ㅀ
+        0x11AF: [
+            0x11A8: 0x11B0, // ㄹ + ㄱ = ㄺ
+            0x11B7: 0x11B1, // ㄹ + ㅁ = ㄻ
+            0x11B8: 0x11B2, // ㄹ + ㅂ = ㄼ
+            0x11BA: 0x11B3, // ㄹ + ㅅ = ㄽ
+            0x11C0: 0x11B4, // ㄹ + ㅌ = ㄾ
+            0x11C1: 0x11B5, // ㄹ + ㅍ = ㄿ
+            0x11C2: 0x11B6  // ㄹ + ㅎ = ㅀ
+        ],
+        // ㅂ (0x11B8) -> ㅄ
+        0x11B8: [
+            0x11BA: 0x11B9  // ㅂ + ㅅ = ㅄ
+        ],
+         // ㅅ (0x11BA) -> ㅆ
+        0x11BA: [
+            0x11BA: 0x11BB  // ㅅ + ㅅ = ㅆ
+        ]
+    ]
+
+    private func combineChoseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
+        return Self.choseongCombinations[a]?[b]
     }
 
     private func combineJungseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
-        // 중성 결합 규칙 (간단한 버전)
-        let combinations: [UCSChar: [UCSChar: UCSChar]] = [
-            0x1169: [
-                0x1161: 0x116A, 0x1162: 0x116B, 0x1175: 0x116C
-            ],
-            0x116E: [
-                0x1165: 0x116F, 0x1166: 0x1170, 0x1175: 0x1171
-            ],
-            0x1173: [0x1175: 0x1174],
-            0x1161: [0x1175: 0x1162],
-            0x1163: [0x1175: 0x1164],
-            0x1165: [0x1175: 0x1166],
-            0x1167: [0x1175: 0x1168]
-        ]
-
-        return combinations[a]?[b]
+        return Self.jungseongCombinations[a]?[b]
     }
 
     private func combineJongseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
-        // 종성 결합 규칙 (간단한 버전)
-        let combinations: [UCSChar: [UCSChar: UCSChar]] = [
-            // ㄱ (0x11A8) -> ㄲ, ㄳ
-            0x11A8: [
-                0x11A8: 0x11A9, // ㄱ + ㄱ = ㄲ
-                0x11BA: 0x11AA  // ㄱ + ㅅ = ㄳ
-            ],
-            // ㄴ (0x11AB) -> ㄵ, ㄶ
-            0x11AB: [
-                0x11BD: 0x11AC, // ㄴ + ㅈ = ㄵ
-                0x11C2: 0x11AD  // ㄴ + ㅎ = ㄶ
-            ],
-            // ㄹ (0x11AF) -> ㄺ, ㄻ, ㄼ, ㄽ, ㄾ, ㄿ, ㅀ
-            0x11AF: [
-                0x11A8: 0x11B0, // ㄹ + ㄱ = ㄺ
-                0x11B7: 0x11B1, // ㄹ + ㅁ = ㄻ
-                0x11B8: 0x11B2, // ㄹ + ㅂ = ㄼ
-                0x11BA: 0x11B3, // ㄹ + ㅅ = ㄽ
-                0x11C0: 0x11B4, // ㄹ + ㅌ = ㄾ
-                0x11C1: 0x11B5, // ㄹ + ㅍ = ㄿ
-                0x11C2: 0x11B6  // ㄹ + ㅎ = ㅀ
-            ],
-            // ㅂ (0x11B8) -> ㅄ
-            0x11B8: [
-                0x11BA: 0x11B9  // ㅂ + ㅅ = ㅄ
-            ],
-             // ㅅ (0x11BA) -> ㅆ
-            0x11BA: [
-                0x11BA: 0x11BB  // ㅅ + ㅅ = ㅆ
-            ]
-        ]
-
-        return combinations[a]?[b]
+        return Self.jongseongCombinations[a]?[b]
     }
 }
 
-// MARK: - HangulCharacter Extension
 
-extension HangulCharacter {
-    /// 초성을 종성으로 변환
-    /// - Parameter choseong: 변환할 초성
-    /// - Returns: 대응되는 종성, 없으면 0
-    public static func choseongToJongseong(_ choseong: UCSChar) -> UCSChar {
-        let table: [UCSChar: UCSChar] = [
-            0x1100: 0x11A8, // ㄱ -> ㄱ
-            0x1101: 0x11A9, // ㄲ -> ㄲ
-            0x1102: 0x11AB, // ㄴ -> ㄴ
-            0x1103: 0x11AE, // ㄷ -> ㄷ
-            // 0x1104 (ㄸ) has no jongseong
-            0x1105: 0x11AF, // ㄹ -> ㄹ
-            0x1106: 0x11B7, // ㅁ -> ㅁ
-            0x1107: 0x11B8, // ㅂ -> ㅂ
-            // 0x1108 (ㅃ) has no jongseong
-            0x1109: 0x11BA, // ㅅ -> ㅅ
-            0x110A: 0x11BB, // ㅆ -> ㅆ
-            0x110B: 0x11BC, // ㅇ -> ㅇ
-            0x110C: 0x11BD, // ㅈ -> ㅈ
-            // 0x110D (ㅉ) has no jongseong
-            0x110E: 0x11BE, // ㅊ -> ㅊ
-            0x110F: 0x11BF, // ㅋ -> ㅋ
-            0x1110: 0x11C0, // ㅌ -> ㅌ
-            0x1111: 0x11C1, // ㅍ -> ㅍ
-            0x1112: 0x11C2  // ㅎ -> ㅎ
-        ]
-
-        return table[choseong] ?? 0
-    }
-}

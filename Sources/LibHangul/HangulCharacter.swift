@@ -270,30 +270,157 @@ public final class HangulCharacter: Sendable {
 
     // MARK: - 자모 변환
 
+    // MARK: - Optimization Tables (Static)
+    
+    @usableFromInline
+    static let jamoToCJamoTable: [UCSChar: UCSChar] = [
+        0x1100: 0x3131, 0x1101: 0x3132, 0x1102: 0x3134, 0x1103: 0x3137,
+        0x1104: 0x3138, 0x1105: 0x3139, 0x1106: 0x3141, 0x1107: 0x3142,
+        0x1108: 0x3143, 0x1109: 0x3145, 0x110A: 0x3146, 0x110B: 0x3147,
+        0x110C: 0x3148, 0x110D: 0x3149, 0x110E: 0x314A, 0x110F: 0x314B,
+        0x1110: 0x314C, 0x1111: 0x314D, 0x1112: 0x314E,
+        0x1160: 0x3164,
+        0x1161: 0x314F, 0x1162: 0x3150, 0x1163: 0x3151, 0x1164: 0x3152,
+        0x1165: 0x3153, 0x1166: 0x3154, 0x1167: 0x3155, 0x1168: 0x3156,
+        0x1169: 0x3157, 0x116A: 0x3158, 0x116B: 0x3159, 0x116C: 0x315A,
+        0x116D: 0x315B, 0x116E: 0x315C, 0x116F: 0x315D, 0x1170: 0x315E,
+        0x1171: 0x315F, 0x1172: 0x3160, 0x1173: 0x3161, 0x1174: 0x3162,
+        0x1175: 0x3163
+    ]
+    
+    @usableFromInline
+    static let cJamoToChoseongMap: [UCSChar: UCSChar] = [
+        0x3131: 0x1100, // ㄱ -> ㄱ
+        0x3132: 0x1101, // ㄲ -> ㄲ
+        0x3134: 0x1102, // ㄴ -> ㄴ
+        0x3137: 0x1103, // ㄷ -> ㄷ
+        0x3138: 0x1104, // ㄸ -> ㄸ
+        0x3139: 0x1105, // ㄹ -> ㄹ
+        0x3141: 0x1106, // ㅁ -> ㅁ
+        0x3142: 0x1107, // ㅂ -> ㅂ
+        0x3143: 0x1108, // ㅃ -> ㅃ
+        0x3145: 0x1109, // ㅅ -> ㅅ
+        0x3146: 0x110A, // ㅆ -> ㅆ
+        0x3147: 0x110B, // ㅇ -> ㅇ
+        0x3148: 0x110C, // ㅈ -> ㅈ
+        0x3149: 0x110D, // ㅉ -> ㅉ
+        0x314A: 0x110E, // ㅊ -> ㅊ
+        0x314B: 0x110F, // ㅋ -> ㅋ
+        0x314C: 0x1110, // ㅌ -> ㅌ
+        0x314D: 0x1111, // ㅍ -> ㅍ
+        0x314E: 0x1112, // ㅎ -> ㅎ
+    ]
+    
+    @usableFromInline
+    static let cJamoToJongseongMap: [UCSChar: UCSChar] = [
+        0x3131: 0x11A8, // ㄱ -> ᆨ
+        0x3132: 0x11A9, // ㄲ -> ᆩ
+        0x3133: 0x11AA, // ㄳ -> ᆪ
+        0x3134: 0x11AB, // ㄴ -> ᆫ
+        0x3135: 0x11AC, // ㄵ -> ᆬ
+        0x3136: 0x11AD, // ㄶ -> ᆭ
+        0x3137: 0x11AE, // ㄷ -> ᆮ
+        0x3138: 0x11AF, // ㄸ -> ᆯ
+        0x3139: 0x11AF, // ㄹ -> ᆯ
+        0x313A: 0x11B0, // ㄺ -> ᆰ
+        0x313B: 0x11B1, // ㄻ -> ᆱ
+        0x313C: 0x11B2, // ㄼ -> ᆲ
+        0x313D: 0x11B3, // ㄽ -> ᆳ
+        0x313E: 0x11B4, // ㄾ -> ᆴ
+        0x313F: 0x11B5, // ㄿ -> ᆵ
+        // 0x3140: 0x11B6, // ㅀ -> ᆶ (ㄸ이 이미 0x3138에 매핑됨 - 3138 is Dd, 3140 is RieuHieuh. This comment was wrong.)
+        0x3140: 0x11B6, // ㅀ -> ᆶ
+        0x3141: 0x11B7, // ㅁ -> ᆷ
+        0x3142: 0x11B8, // ㅂ -> ᆸ
+        0x3143: 0x11B9, // ㅃ -> ᆹ
+        0x3144: 0x11B9, // ㅄ -> ᆹ
+        0x3145: 0x11BA, // ㅅ -> ᆺ
+        0x3146: 0x11BB, // ㅆ -> ᆻ
+        0x3147: 0x11BC, // ㅇ -> ᆼ
+        0x3148: 0x11BD, // ㅈ -> ᆽ
+        0x3149: 0x11BE, // ㅉ -> ᆾ
+        0x314A: 0x11BE, // ㅊ -> ᆾ
+        0x314B: 0x11BF, // ㅋ -> ᆿ
+        0x314C: 0x11C0, // ㅌ -> ᇀ
+        0x314D: 0x11C1, // ㅍ -> ᇁ
+        0x314E: 0x11C2  // ㅎ -> ᇂ
+    ]
+
+    @usableFromInline
+    static let jongseongToChoseongTable: [UCSChar: UCSChar] = [
+        0x11A8: 0x1100, // ㄱ -> ㄱ
+        0x11A9: 0x1101, // ㄲ -> ㄲ
+        0x11AB: 0x1102, // ㄴ -> ㄴ
+        0x11AE: 0x1103, // ㄷ -> ㄷ
+        0x11AF: 0x1105, // ㄹ -> ㄹ
+        0x11B7: 0x1106, // ㅁ -> ㅁ
+        0x11B8: 0x1107, // ㅂ -> ㅂ
+        0x11BA: 0x1109, // ㅅ -> ㅅ
+        0x11BB: 0x110A, // ㅆ -> ㅆ
+        0x11BC: 0x110B, // ㅇ -> ㅇ
+        0x11BD: 0x110C, // ㅈ -> ㅈ
+        0x11BE: 0x110E, // ㅊ -> ㅊ
+        0x11BF: 0x110F, // ㅋ -> ㅋ
+        0x11C0: 0x1110, // ㅌ -> ㅌ
+        0x11C1: 0x1111, // ㅍ -> ㅍ
+        0x11C2: 0x1112  // ㅎ -> ㅎ
+    ]
+    
+    @usableFromInline
+    static let decomposeJongseongTable: [UCSChar: (UCSChar, UCSChar)] = [
+        0x11AA: (0x11A8, 0x11BA), // ㄳ -> ㄱ, ㅅ
+        0x11AC: (0x11AB, 0x11BD), // ㄵ -> ㄴ, ㅈ
+        0x11AD: (0x11AB, 0x11C2), // ㄶ -> ㄴ, ㅎ
+        0x11B0: (0x11AF, 0x11A8), // ㄺ -> ㄹ, ㄱ
+        0x11B1: (0x11AF, 0x11B7), // ㄻ -> ㄹ, ㅁ
+        0x11B2: (0x11AF, 0x11B8), // ㄼ -> ㄹ, ㅂ
+        0x11B3: (0x11AF, 0x11BA), // ㄽ -> ㄹ, ㅅ
+        0x11B4: (0x11AF, 0x11C0), // ㄾ -> ㄹ, ㅌ
+        0x11B5: (0x11AF, 0x11C1), // ㄿ -> ㄹ, ㅍ
+        0x11B6: (0x11AF, 0x11C2), // ㅀ -> ㄹ, ㅎ
+        0x11B9: (0x11B8, 0x11BA)  // ㅄ -> ㅂ, ㅅ
+    ]
+    
+    @usableFromInline
+    static let decomposeJungseongTable: [UCSChar: (UCSChar, UCSChar)] = [
+        0x116A: (0x1169, 0x1161), // ㅘ -> ㅗ, ㅏ
+        0x116B: (0x1169, 0x1162), // ㅙ -> ㅗ, ㅐ
+        0x116C: (0x1169, 0x1175), // ㅚ -> ㅗ, ㅣ
+        0x116F: (0x116E, 0x1165), // ㅝ -> ㅜ, ㅓ
+        0x1170: (0x116E, 0x1166), // ㅞ -> ㅜ, ㅔ
+        0x1171: (0x116E, 0x1175), // ㅟ -> ㅜ, ㅣ
+        0x1174: (0x1173, 0x1175), // ㅢ -> ㅡ, ㅣ
+    ]
+    
+    @usableFromInline
+    static let choseongToJongseongTable: [UCSChar: UCSChar] = [
+        0x1100: 0x11A8, // ㄱ -> ㄱ
+        0x1101: 0x11A9, // ㄲ -> ㄲ
+        0x1102: 0x11AB, // ㄴ -> ㄴ
+        0x1103: 0x11AE, // ㄷ -> ㄷ
+        // 0x1104 (ㄸ) has no jongseong
+        0x1105: 0x11AF, // ㄹ -> ㄹ
+        0x1106: 0x11B7, // ㅁ -> ㅁ
+        0x1107: 0x11B8, // ㅂ -> ㅂ
+        // 0x1108 (ㅃ) has no jongseong
+        0x1109: 0x11BA, // ㅅ -> ㅅ
+        0x110A: 0x11BB, // ㅆ -> ㅆ
+        0x110B: 0x11BC, // ㅇ -> ㅇ
+        0x110C: 0x11BD, // ㅈ -> ㅈ
+        // 0x110D (ㅉ) has no jongseong
+        0x110E: 0x11BE, // ㅊ -> ㅊ
+        0x110F: 0x11BF, // ㅋ -> ㅋ
+        0x1110: 0x11C0, // ㅌ -> ㅌ
+        0x1111: 0x11C1, // ㅍ -> ㅍ
+        0x1112: 0x11C2  // ㅎ -> ㅎ
+    ]
+
     /// 자모를 호환 자모로 변환
     /// - Parameter jamo: 변환할 자모
     /// - Returns: 대응되는 호환 자모, 없으면 원본 반환
     public static func jamoToCJamo(_ jamo: UCSChar) -> UCSChar {
-        // 자모 변환 테이블 (간략 버전)
-        let jamoTable: [UCSChar: UCSChar] = [
-            0x1100: 0x3131, 0x1101: 0x3132, 0x1102: 0x3134, 0x1103: 0x3137,
-            0x1104: 0x3138, 0x1105: 0x3139, 0x1106: 0x3141, 0x1107: 0x3142,
-            0x1108: 0x3143, 0x1109: 0x3145, 0x110A: 0x3146, 0x110B: 0x3147,
-            0x110C: 0x3148, 0x110D: 0x3149, 0x110E: 0x314A, 0x110F: 0x314B,
-            0x1110: 0x314C, 0x1111: 0x314D, 0x1112: 0x314E,
-            0x1160: 0x3164,
-            0x1161: 0x314F, 0x1162: 0x3150, 0x1163: 0x3151, 0x1164: 0x3152,
-            0x1165: 0x3153, 0x1166: 0x3154, 0x1167: 0x3155, 0x1168: 0x3156,
-            0x1169: 0x3157, 0x116A: 0x3158, 0x116B: 0x3159, 0x116C: 0x315A,
-            0x116D: 0x315B, 0x116E: 0x315C, 0x116F: 0x315D, 0x1170: 0x315E,
-            0x1171: 0x315F, 0x1172: 0x3160, 0x1173: 0x3161, 0x1174: 0x3162,
-            0x1175: 0x3163
-        ]
-
-        return jamoTable[jamo] ?? jamo
+        return jamoToCJamoTable[jamo] ?? jamo
     }
-
-    // MARK: - 호환 자모 변환
 
     /// 호환 자모를 조합형 자모로 변환 (용도별)
     /// - Parameters:
@@ -306,69 +433,11 @@ public final class HangulCharacter: Sendable {
         if c >= 0x3131 && c <= 0x314E {
             switch usage {
             case .choseong:
-                // 초성 매핑: 각 호환 초성을 올바른 조합형 초성으로 매핑
-                let choseongMap: [UCSChar: UCSChar] = [
-                    0x3131: 0x1100, // ㄱ -> ㄱ
-                    0x3132: 0x1101, // ㄲ -> ㄲ
-                    0x3134: 0x1102, // ㄴ -> ㄴ
-                    0x3137: 0x1103, // ㄷ -> ㄷ
-                    0x3138: 0x1104, // ㄸ -> ㄸ
-                    0x3139: 0x1105, // ㄹ -> ㄹ
-                    0x3141: 0x1106, // ㅁ -> ㅁ
-                    0x3142: 0x1107, // ㅂ -> ㅂ
-                    0x3143: 0x1108, // ㅃ -> ㅃ
-                    0x3145: 0x1109, // ㅅ -> ㅅ
-                    0x3146: 0x110A, // ㅆ -> ㅆ
-                    0x3147: 0x110B, // ㅇ -> ㅇ
-                    0x3148: 0x110C, // ㅈ -> ㅈ
-                    0x3149: 0x110D, // ㅉ -> ㅉ
-                    0x314A: 0x110E, // ㅊ -> ㅊ
-                    0x314B: 0x110F, // ㅋ -> ㅋ
-                    0x314C: 0x1110, // ㅌ -> ㅌ
-                    0x314D: 0x1111, // ㅍ -> ㅍ
-                    0x314E: 0x1112, // ㅎ -> ㅎ
-                ]
-                return choseongMap[c] ?? c
+                return cJamoToChoseongMap[c] ?? c
             case .jungseong:
                 return c - 0x3131 + 0x1161
             case .jongseong:
-                // 종성 매핑: ㄱ(0x3131) -> ㄱ(0x11A8), ㄲ(0x3132) -> ㄲ(0x11A9), ...
-                let jongseongMap: [UCSChar: UCSChar] = [
-                    0x3131: 0x11A8, // ㄱ -> ᆨ
-                    0x3132: 0x11A9, // ㄲ -> ᆩ
-                    0x3133: 0x11AA, // ㄳ -> ᆪ
-                    0x3134: 0x11AB, // ㄴ -> ᆫ
-                    0x3135: 0x11AC, // ㄵ -> ᆬ
-                    0x3136: 0x11AD, // ㄶ -> ᆭ
-                    0x3137: 0x11AE, // ㄷ -> ᆮ
-                    0x3138: 0x11AF, // ㄸ -> ᆯ
-                    0x3139: 0x11AF, // ㄹ -> ᆯ
-                    0x313A: 0x11B0, // ㄺ -> ᆰ
-                    0x313B: 0x11B1, // ㄻ -> ᆱ
-                    0x313C: 0x11B2, // ㄼ -> ᆲ
-                    0x313D: 0x11B3, // ㄽ -> ᆳ
-                    0x313E: 0x11B4, // ㄾ -> ᆴ
-                    0x313F: 0x11B5, // ㄿ -> ᆵ
-//                    0x3140: 0x11B6, // ㅀ -> ᆶ (ㄸ이 이미 0x3138에 매핑됨 - 3138 is Dd, 3140 is RieuHieuh. This comment was wrong.)
-                    0x3140: 0x11B6, // ㅀ -> ᆶ
-                    0x3141: 0x11B7, // ㅁ -> ᆷ
-                    0x3142: 0x11B8, // ㅂ -> ᆸ
-                    0x3143: 0x11B9, // ㅃ -> ᆹ (This is also weird in original code. 0x3143 is Bb, 0x11B9 is Bs. 0x3144 is Bs)
-                    0x3144: 0x11B9, // ㅄ -> ᆹ
-                    0x3145: 0x11BA, // ㅅ -> ᆺ
-                    0x3146: 0x11BB, // ㅆ -> ᆻ
-                    0x3147: 0x11BC, // ㅇ -> ᆼ
-                    0x3148: 0x11BD, // ㅈ -> ᆽ
-                    0x3149: 0x11BE, // ㅉ -> ᆾ (FIXME: 0x3149 is Jj, 0x11BE is Ch. This seems wrong mapping in original or comment? 0x11BE is Chieuch-Jongseong. Jj-Jongseong doesn't exist in standard 11A8-11FF range except as double cons? Wait, 0x11BD is J. 0x11BE is Ch. Dictionary says Jj Jongseong is not standard. But let's check mapping.)
-                    // 0x3149 (ㅉ) as Jongseong is not standard, usually mapped to ㄷ or similar or just not supported.
-                    // But 0x314A (ㅊ) should be 0x11BE
-                    0x314A: 0x11BE, // ㅊ -> ᆾ
-                    0x314B: 0x11BF, // ㅋ -> ᆿ
-                    0x314C: 0x11C0, // ㅌ -> ᇀ
-                    0x314D: 0x11C1, // ㅍ -> ᇁ
-                    0x314E: 0x11C2  // ㅎ -> ᇂ
-                ]
-                return jongseongMap[c] ?? c
+                return cJamoToJongseongMap[c] ?? c
             }
         }
         // 호환 중성 (0x314F-0x3163) -> 조합형 중성 (0x1161-0x1175)
@@ -378,7 +447,7 @@ public final class HangulCharacter: Sendable {
         // 변환할 필요 없음
         return c
     }
-
+    
     /// 자모 용도 열거형
     public enum JamoUsage: Sendable {
         case choseong
@@ -413,64 +482,28 @@ public final class HangulCharacter: Sendable {
     /// - Parameter jongseong: 변환할 종성
     /// - Returns: 대응되는 초성, 없으면 0
     public static func jongseongToChoseong(_ jongseong: UCSChar) -> UCSChar {
-        // choseongToJongseong의 역방향 매핑
-        let table: [UCSChar: UCSChar] = [
-            0x11A8: 0x1100, // ㄱ -> ㄱ
-            0x11A9: 0x1101, // ㄲ -> ㄲ
-            0x11AB: 0x1102, // ㄴ -> ㄴ
-            0x11AE: 0x1103, // ㄷ -> ㄷ
-            0x11AF: 0x1105, // ㄹ -> ㄹ
-            0x11B7: 0x1106, // ㅁ -> ㅁ
-            0x11B8: 0x1107, // ㅂ -> ㅂ
-            0x11BA: 0x1109, // ㅅ -> ㅅ
-            0x11BB: 0x110A, // ㅆ -> ㅆ
-            0x11BC: 0x110B, // ㅇ -> ㅇ
-            0x11BD: 0x110C, // ㅈ -> ㅈ
-            0x11BE: 0x110E, // ㅊ -> ㅊ
-            0x11BF: 0x110F, // ㅋ -> ㅋ
-            0x11C0: 0x1110, // ㅌ -> ㅌ
-            0x11C1: 0x1111, // ㅍ -> ㅍ
-            0x11C2: 0x1112  // ㅎ -> ㅎ
-        ]
-        return table[jongseong] ?? 0
+        return jongseongToChoseongTable[jongseong] ?? 0
     }
 
     /// 복합 종성을 분해
     /// - Parameter jongseong: 분해할 종성
     /// - Returns: (앞 종성, 뒤 종성). 단일 종성이면 (원본, 0) 반환
     public static func decomposeJongseong(_ jongseong: UCSChar) -> (UCSChar, UCSChar) {
-        // 복합 종성 분해 테이블
-        let table: [UCSChar: (UCSChar, UCSChar)] = [
-            0x11AA: (0x11A8, 0x11BA), // ㄳ -> ㄱ, ㅅ
-            0x11AC: (0x11AB, 0x11BD), // ㄵ -> ㄴ, ㅈ
-            0x11AD: (0x11AB, 0x11C2), // ㄶ -> ㄴ, ㅎ
-            0x11B0: (0x11AF, 0x11A8), // ㄺ -> ㄹ, ㄱ
-            0x11B1: (0x11AF, 0x11B7), // ㄻ -> ㄹ, ㅁ
-            0x11B2: (0x11AF, 0x11B8), // ㄼ -> ㄹ, ㅂ
-            0x11B3: (0x11AF, 0x11BA), // ㄽ -> ㄹ, ㅅ
-            0x11B4: (0x11AF, 0x11C0), // ㄾ -> ㄹ, ㅌ
-            0x11B5: (0x11AF, 0x11C1), // ㄿ -> ㄹ, ㅍ
-            0x11B6: (0x11AF, 0x11C2), // ㅀ -> ㄹ, ㅎ
-            0x11B9: (0x11B8, 0x11BA)  // ㅄ -> ㅂ, ㅅ
-        ]
-        return table[jongseong] ?? (jongseong, 0)
+        return decomposeJongseongTable[jongseong] ?? (jongseong, 0)
     }
 
     /// 복합 중성을 분해
     /// - Parameter jungseong: 분해할 중성
     /// - Returns: (앞 중성, 뒤 중성). 단일 중성이면 (원본, 0) 반환
     public static func decomposeJungseong(_ jungseong: UCSChar) -> (UCSChar, UCSChar) {
-        // 복합 중성 분해 테이블
-        let table: [UCSChar: (UCSChar, UCSChar)] = [
-            0x116A: (0x1169, 0x1161), // ㅘ -> ㅗ, ㅏ
-            0x116B: (0x1169, 0x1162), // ㅙ -> ㅗ, ㅐ
-            0x116C: (0x1169, 0x1175), // ㅚ -> ㅗ, ㅣ
-            0x116F: (0x116E, 0x1165), // ㅝ -> ㅜ, ㅓ
-            0x1170: (0x116E, 0x1166), // ㅞ -> ㅜ, ㅔ
-            0x1171: (0x116E, 0x1175), // ㅟ -> ㅜ, ㅣ
-            0x1174: (0x1173, 0x1175), // ㅢ -> ㅡ, ㅣ
-        ]
-        return table[jungseong] ?? (jungseong, 0)
+        return decomposeJungseongTable[jungseong] ?? (jungseong, 0)
+    }
+    
+    /// 초성을 종성으로 변환
+    /// - Parameter choseong: 변환할 초성
+    /// - Returns: 대응되는 종성, 없으면 0
+    public static func choseongToJongseong(_ choseong: UCSChar) -> UCSChar {
+        return choseongToJongseongTable[choseong] ?? 0
     }
 
 }
