@@ -455,23 +455,25 @@ class TestRunner {
     func testBugReports() {
         print("\n--- Running Bug Report Tests ---")
         
-        // Bug: "한글입력기" -> "한글입렦기"
-        // Input: gks(한) rmf(글) dlq(입) fur(력) rl(기)
-        // The second ㄱ in "력기" is combining with the first instead of starting new syllable
+        // Bug 1: "한글입력기" -> "한글입렦기"
         reset()
         processInput("gksrmfdlqfurrl")
-        let result2 = getCommitString() + getPreeditString()
-        assertEquals(result2, "한글입력기", "Bug Fix: 한글입력기")
+        let result1 = getCommitString() + getPreeditString()
+        assertEquals(result1, "한글입력기", "Bug Fix: 한글입력기")
         
+        // Bug 2: "바뀌어" -> "박귀어"
+        // When vowel follows double consonant jongseong (ㄲ, ㅆ), the ENTIRE double consonant
+        // should move to next syllable as choseong, not be split.
+        reset()
+        processInput("qkRnldj")
+        let result2 = getCommitString() + getPreeditString()
+        assertEquals(result2, "바뀌어", "Bug Fix: 바뀌어 (Double Consonant Move)")
+        
+        // Bug 3: "샀" -> "사T"
         reset()
         processInput("tkT")
-        let result = getCommitString() + getPreeditString()
-        if result == "샀" {
-             print("✅ PASSED: Bug Fix '샀' (tkT -> 샀)")
-        } else {
-             print("❌ FAILED: Bug Fix '샀' (Expected '샀', Got '\(result)')")
-             // We won't crash the test runner here to allow fixing it.
-        }
+        let result3 = getCommitString() + getPreeditString()
+        assertEquals(result3, "샀", "Bug Fix: 샀 (tkT -> 샀)")
     }
 
     func runAll() {

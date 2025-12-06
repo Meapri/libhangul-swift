@@ -295,41 +295,50 @@ public final class HangulInputContext {
 
         // [New Logic] 음절 분리 확인 (Jongseong + Jungseong -> Next Syllable)
         if HangulCharacter.isJungseong(processedJamo) && buffer.jongseong != 0 {
-            // 현재 종성을 분해
-            let (first, second) = HangulCharacter.decomposeJongseong(buffer.jongseong)
+            let currentJongseong = buffer.jongseong
+            let wasExtended = buffer.jongseongWasExtended
             
-            // 이동할 종성 (다음 글자의 초성이 될 부분)
-            let suffixJongseong = (second != 0) ? second : first
-            
-            // 남을 종성 (현재 글자에 남을 부분)
-            let prefixJongseong = (second != 0) ? first : 0
-            
-            // 이동할 종성이 초성으로 변환 가능한지 확인
-            let nextChoseong = HangulCharacter.jongseongToChoseong(suffixJongseong)
-            if nextChoseong != 0 {
-                // 분리 발생!
+            if wasExtended {
+                // 종성이 결합으로 확장됨 (ㄱ+ㄱ=ㄲ, ㄱ+ㅅ=ㄳ 등)
+                // 분해하여 뒷부분만 다음 음절로 이동
+                let (first, second) = HangulCharacter.decomposeJongseong(currentJongseong)
                 
-                // 1. 현재 버퍼에서 종성 제거/수정
-                // NOTE: buffer.pop()은 복합 종성을 자동 분해하여 첫 부분만 남긴다.
-                //       단일 종성의 경우 완전히 제거된다.
-                let _ = buffer.pop()
-                
-                // pop() 후 jongseong이 0이 되었고, 원래 남겨야 할 prefix가 있다면 다시 추가
-                // (단일 종성이 완전히 제거된 경우에는 prefix=0이므로 추가하지 않음)
-                // (복합 종성의 경우 pop()이 이미 첫 부분을 남겨두므로 추가하지 않음)
-                // 결론: pop()이 잘 처리하므로 추가 push 불필요
-                
-                // 2. 현재 음절 커밋 (flush)
-                let flushResult = safeFlush()
-                if case .success(let flushed) = flushResult {
-                    commitString.append(contentsOf: flushed)
+                if second != 0 {
+                    let nextChoseong = HangulCharacter.jongseongToChoseong(second)
+                    if nextChoseong != 0 {
+                        // 앞부분만 남김
+                        buffer.setJongseong(first, wasExtended: false)
+                        
+                        // 현재 음절 커밋
+                        let flushResult = safeFlush()
+                        if case .success(let flushed) = flushResult {
+                            commitString.append(contentsOf: flushed)
+                        }
+                        
+                        // 다음 음절 시작
+                        let _ = buffer.push(nextChoseong)
+                        updatePreeditString()
+                    }
                 }
+            } else {
+                // 종성이 단일 입력됨 (ㄱ, ㄲ, ㄴ 등 - 확장 없이 직접 입력)
+                // 종성 전체를 다음 음절의 초성으로 이동
+                let wholeAsChoseong = HangulCharacter.jongseongToChoseong(currentJongseong)
                 
-                // 3. 다음 음절 시작 (초성 설정)
-                let _ = buffer.push(nextChoseong)
-                updatePreeditString()
-                
-                // 4. 입력된 중성 처리는 아래 buffer.push(processedJamo)에서 수행됨
+                if wholeAsChoseong != 0 {
+                    // 버퍼에서 종성 완전히 제거
+                    buffer.setJongseong(0)
+                    
+                    // 현재 음절 커밋
+                    let flushResult = safeFlush()
+                    if case .success(let flushed) = flushResult {
+                        commitString.append(contentsOf: flushed)
+                    }
+                    
+                    // 다음 음절 시작
+                    let _ = buffer.push(wholeAsChoseong)
+                    updatePreeditString()
+                }
             }
         }
 

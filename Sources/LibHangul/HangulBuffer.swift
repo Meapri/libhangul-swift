@@ -24,6 +24,10 @@ public final class HangulBuffer {
 
     /// 종성
     public private(set) var jongseong: UCSChar = 0
+    
+    /// 종성이 결합되어 확장되었는지 여부 (ㄱ+ㄱ=ㄲ 등)
+    /// 음절 분리 시 확장된 종성은 분해되고, 원래 단일 입력은 전체 이동
+    public private(set) var jongseongWasExtended: Bool = false
 
     /// 자모 스택 (Unused in single-syllable buffer design, kept for API compatibility if needed, but removing logic)
     // private var stack: [UCSChar] = [] // Removed
@@ -48,6 +52,15 @@ public final class HangulBuffer {
         choseong = 0
         jungseong = 0
         jongseong = 0
+        jongseongWasExtended = false
+    }
+    
+    /// 종성을 직접 설정 (음절 분리 로직용)
+    /// - Parameter value: 설정할 종성 값 (0이면 종성 제거)
+    /// - Parameter wasExtended: 종성이 결합으로 확장되었는지 여부
+    internal func setJongseong(_ value: UCSChar, wasExtended: Bool = false) {
+        jongseong = value
+        jongseongWasExtended = wasExtended
     }
 
     /// 자모를 버퍼에 추가
@@ -181,11 +194,13 @@ public final class HangulBuffer {
     private func pushJongseong(_ jamo: UCSChar) -> Bool {
         if jongseong == 0 {
             jongseong = jamo
+            jongseongWasExtended = false  // 새 종성은 확장되지 않음
             return true
         } else {
             // 종성이 있으면 결합 시도
             if let combined = combineJongseong(jongseong, jamo) {
                 jongseong = combined
+                jongseongWasExtended = true  // 결합되어 확장됨
                 return true
             }
         }
