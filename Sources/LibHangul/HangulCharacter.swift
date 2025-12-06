@@ -378,7 +378,10 @@ public final class HangulCharacter: Sendable {
         0x11B4: (0x11AF, 0x11C0), // ㄾ -> ㄹ, ㅌ
         0x11B5: (0x11AF, 0x11C1), // ㄿ -> ㄹ, ㅍ
         0x11B6: (0x11AF, 0x11C2), // ㅀ -> ㄹ, ㅎ
-        0x11B9: (0x11B8, 0x11BA)  // ㅄ -> ㅂ, ㅅ
+        0x11B9: (0x11B8, 0x11BA),  // ㅄ -> ㅂ, ㅅ
+        // Added for backspace support (Inverse of HangulBuffer combinations)
+        0x11A9: (0x11A8, 0x11A8), // ㄲ -> ㄱ, ㄱ
+        0x11BB: (0x11BA, 0x11BA)  // ㅆ -> ㅅ, ㅅ
     ]
     
     @usableFromInline
@@ -390,6 +393,11 @@ public final class HangulCharacter: Sendable {
         0x1170: (0x116E, 0x1166), // ㅞ -> ㅜ, ㅔ
         0x1171: (0x116E, 0x1175), // ㅟ -> ㅜ, ㅣ
         0x1174: (0x1173, 0x1175), // ㅢ -> ㅡ, ㅣ
+        // Added for backspace support (Inverse of HangulBuffer combinations)
+        0x1162: (0x1161, 0x1175), // ㅐ -> ㅏ, ㅣ
+        0x1164: (0x1163, 0x1175), // ㅒ -> ㅑ, ㅣ
+        0x1166: (0x1165, 0x1175), // ㅔ -> ㅓ, ㅣ
+        0x1168: (0x1167, 0x1175), // ㅖ -> ㅕ, ㅣ
     ]
     
     @usableFromInline

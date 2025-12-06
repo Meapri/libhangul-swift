@@ -266,6 +266,31 @@ class TestRunner {
         _ = inputContext.backspace() // empty
         assertEquals(getPreeditString(), "", "BS to Prev Syllable (ㅇ -> empty)")
     }
+    
+    func testBackspaceCompositeVowel() {
+        reset()
+        // ㅏ + ㅣ = ㅐ -> BS -> ㅏ
+        processInput("kl") // k(ㅏ) + l(ㅣ)
+        let preedit = getPreeditString()
+        assertEquals(preedit, "\u{1162}", "Composite Vowel Creation (ㅏ+ㅣ=ㅐ)")
+        
+        _ = inputContext.backspace()
+        assertEquals(getPreeditString(), "\u{1161}", "BS Composite Vowel (애 -> 아)")
+    }
+    
+    func testBackspaceDoubleConsonantJongseong() {
+        reset()
+        // 국 + ㄱ = 굮 -> BS -> 국
+        processInput("rnr") // ㄱㅜㄱ
+        _ = inputContext.process(Int(Character("r").asciiValue!)) // + ㄱ -> 굮 (ㄲ jongseong)
+        
+        let preeditWithKK = getPreeditString() // It's already a String
+        // Note: 굮 is rare, might display weirdly, but checking logic
+        
+        _ = inputContext.backspace()
+        let result = getPreeditString()
+        assertEquals(result, "국", "BS Double Consonant Jongseong (굮 -> 국)")
+    }
 
     // MARK: - New Tests
     
@@ -466,6 +491,8 @@ class TestRunner {
         testBackspaceDoubleJungseong()
         testBackspaceSyllableBoundary()
         testBackspaceToPreviousSyllable()
+        testBackspaceCompositeVowel() // Added
+        testBackspaceDoubleConsonantJongseong() // Added
         
         testMixedInput()
         testSentenceTyping()
