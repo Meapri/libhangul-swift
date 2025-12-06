@@ -147,6 +147,12 @@ public final class HangulBuffer {
                 jongseong = jong
                 return true
             }
+        } else {
+            // 종성이 있는 경우: 복합 종성 결합 시도 (초성 코드로 들어온 입력을 종성으로 변환하여 결합 시도)
+            let jong = HangulCharacter.choseongToJongseong(jamo)
+            if jong != 0 {
+                return pushJongseong(jong)
+            }
         }
 
         return false
@@ -217,11 +223,34 @@ public final class HangulBuffer {
     private func combineJongseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
         // 종성 결합 규칙 (간단한 버전)
         let combinations: [UCSChar: [UCSChar: UCSChar]] = [
-            0x11A8: [0x11A8: 0x11A9], // ㄱ + ㄱ = ㄲ
-            0x11AB: [0x11C2: 0x11AD], // ㄴ + ㅎ = ㄶ
-            0x11AF: [0x11A8: 0x11B0], // ㄹ + ㄱ = ㄺ
-            0x11B8: [0x11BA: 0x11B9], // ㅂ + ㅅ = ㅄ
-            0x11BA: [0x11BA: 0x11BB]  // ㅅ + ㅅ = ㅆ
+            // ㄱ (0x11A8) -> ㄲ, ㄳ
+            0x11A8: [
+                0x11A8: 0x11A9, // ㄱ + ㄱ = ㄲ
+                0x11BA: 0x11AA  // ㄱ + ㅅ = ㄳ
+            ],
+            // ㄴ (0x11AB) -> ㄵ, ㄶ
+            0x11AB: [
+                0x11BD: 0x11AC, // ㄴ + ㅈ = ㄵ
+                0x11C2: 0x11AD  // ㄴ + ㅎ = ㄶ
+            ],
+            // ㄹ (0x11AF) -> ㄺ, ㄻ, ㄼ, ㄽ, ㄾ, ㄿ, ㅀ
+            0x11AF: [
+                0x11A8: 0x11B0, // ㄹ + ㄱ = ㄺ
+                0x11B7: 0x11B1, // ㄹ + ㅁ = ㄻ
+                0x11B8: 0x11B2, // ㄹ + ㅂ = ㄼ
+                0x11BA: 0x11B3, // ㄹ + ㅅ = ㄽ
+                0x11C0: 0x11B4, // ㄹ + ㅌ = ㄾ
+                0x11C1: 0x11B5, // ㄹ + ㅍ = ㄿ
+                0x11C2: 0x11B6  // ㄹ + ㅎ = ㅀ
+            ],
+            // ㅂ (0x11B8) -> ㅄ
+            0x11B8: [
+                0x11BA: 0x11B9  // ㅂ + ㅅ = ㅄ
+            ],
+             // ㅅ (0x11BA) -> ㅆ
+            0x11BA: [
+                0x11BA: 0x11BB  // ㅅ + ㅅ = ㅆ
+            ]
         ]
 
         return combinations[a]?[b]
@@ -236,11 +265,25 @@ extension HangulCharacter {
     /// - Returns: 대응되는 종성, 없으면 0
     public static func choseongToJongseong(_ choseong: UCSChar) -> UCSChar {
         let table: [UCSChar: UCSChar] = [
-            0x1100: 0x11A8, 0x1101: 0x11A9, 0x1102: 0x11AB, 0x1103: 0x11AE,
-            0x1104: 0x11AF, 0x1105: 0x11B7, 0x1106: 0x11B8, 0x1107: 0x11BA,
-            0x1108: 0x11BB, 0x1109: 0x11BC, 0x110A: 0x11BD, 0x110B: 0x11BE,
-            0x110C: 0x11BF, 0x110D: 0x11C0, 0x110E: 0x11C1, 0x110F: 0x11C2,
-            0x1110: 0x11C5, 0x1111: 0x11C6, 0x1112: 0x11C2  // 0x1112 (ㅎ) -> 0x11C2 (ㅎ)
+            0x1100: 0x11A8, // ㄱ -> ㄱ
+            0x1101: 0x11A9, // ㄲ -> ㄲ
+            0x1102: 0x11AB, // ㄴ -> ㄴ
+            0x1103: 0x11AE, // ㄷ -> ㄷ
+            // 0x1104 (ㄸ) has no jongseong
+            0x1105: 0x11AF, // ㄹ -> ㄹ
+            0x1106: 0x11B7, // ㅁ -> ㅁ
+            0x1107: 0x11B8, // ㅂ -> ㅂ
+            // 0x1108 (ㅃ) has no jongseong
+            0x1109: 0x11BA, // ㅅ -> ㅅ
+            0x110A: 0x11BB, // ㅆ -> ㅆ
+            0x110B: 0x11BC, // ㅇ -> ㅇ
+            0x110C: 0x11BD, // ㅈ -> ㅈ
+            // 0x110D (ㅉ) has no jongseong
+            0x110E: 0x11BE, // ㅊ -> ㅊ
+            0x110F: 0x11BF, // ㅋ -> ㅋ
+            0x1110: 0x11C0, // ㅌ -> ㅌ
+            0x1111: 0x11C1, // ㅍ -> ㅍ
+            0x1112: 0x11C2  // ㅎ -> ㅎ
         ]
 
         return table[choseong] ?? 0

@@ -280,8 +280,9 @@ public final class HangulInputContext {
 
         // 관용 입력 모드: 초성 ㄷ → 종성 ㄴ 자동 변환
         var processedJamo = jamo
-        if enableIdiomaticInput && HangulCharacter.isChoseong(jamo) && jamo == 0x1102 { // ㄷ
-            // 이전 입력이 초성이고 현재가 ㄷ인 경우, 종성 ㄴ으로 변환 고려
+        if enableIdiomaticInput && HangulCharacter.isChoseong(jamo) && jamo == 0x1102 { // ㄴ (nieun)
+            // 이전 입력이 초성이고 현재가 ㄴ(nieun)인 경우, 종성 ㄴ으로 변환 고려
+            // Note: 0x1102 is Choseong Nieun (ㄴ), not Digeut (ㄷ) as the original comment said.
             if !buffer.isEmpty && buffer.choseong != 0 && buffer.jungseong == 0 {
                 processedJamo = 0x11AB // 종성 ㄴ
             }
@@ -289,7 +290,7 @@ public final class HangulInputContext {
 
         // 추가: 초성 매핑을 종성으로 변환 (특정 키에 대한)
         if jamo == 0x1102 && !buffer.isEmpty && buffer.choseong != 0 && buffer.jungseong != 0 {
-            // 초성 ㄷ이 입력되었고, 이미 초성과 중성이 있는 경우 종성 ㄴ으로 변환
+            // 초성 ㄴ이 입력되었고, 이미 초성과 중성이 있는 경우 종성 ㄴ으로 변환
             processedJamo = 0x11AB // 종성 ㄴ
         }
 
@@ -299,8 +300,11 @@ public final class HangulInputContext {
             updatePreeditString()
 
             // 완성된 음절이 있는지 확인하고 커밋
+            // 완성된 음절이 있는지 확인하고 커밋
+            /*
             let afterPush = buffer.buildSyllable()
 
+            /*
             if beforePush != 0 && afterPush != 0 && beforePush != afterPush {
                 // 이전 음절이 완성되었으므로 커밋
                 commitString.append(beforePush)
@@ -311,14 +315,16 @@ public final class HangulInputContext {
                     // 버퍼 초기화 (현재 음절 처리 완료)
                     buffer.clear()
                 }
-            } else if afterPush != 0 {
+            } else */
+            if afterPush != 0 {
                 // 완성된 음절이 있으면 커밋
                 commitString.append(afterPush)
                 // 버퍼 초기화 - 하지만 종성 입력 시에는 초기화하지 않음
-                if !HangulCharacter.isJongseong(processedJamo) {
+                if !HangulCharacter.isJongseong(processedJamo) && buffer.jongseong == 0 {
                     buffer.clear()
                 }
             }
+            */
 
             // 배열 용량 관리
             manageArrayCapacity()

@@ -1,0 +1,260 @@
+warning: 'libhangul-swift': found 47 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/HangulInputContextTests.swift
+    /Users/naen/Git/libhangul-swift/concurrency_test.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-3s.xml.template
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/HangulCharacterTests.swift
+    /Users/naen/Git/libhangul-swift/data/hanja/compat-table.txt
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-39.xml.template
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/IntegrationTests.swift
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/HangulBuffer.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-2.xml.template
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-ro.xml.template
+    /Users/naen/Git/libhangul-swift/test_output.txt
+    /Users/naen/Git/libhangul-swift/concurrency_solution_example.swift
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/LibHangulTests.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/its/hangul-keyboard.its
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/ErrorHandlingTests.swift
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/Examples.swift
+    /Users/naen/Git/libhangul-swift/data/hanja/mssymbol.txt
+    /Users/naen/Git/libhangul-swift/test_korean_input.swift
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/HangulKeyboard.swift
+    /Users/naen/Git/libhangul-swift/data/hanja/freq-hanja.txt
+    /Users/naen/Git/libhangul-swift/data/hanja/merge.py
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/ThreadSafeHangulInputContext.swift
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/HanjaTests.swift
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/ComplexInputTests.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-combination-default.xml
+    /Users/naen/Git/libhangul-swift/data/hanja/hanja.txt
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/PerformanceTests.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-3f.xml.template
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/Hanja.swift
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/LibHangul.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-2y.xml.template
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/its/hangul-keyboard.loc
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-combination-full.xml
+    /Users/naen/Git/libhangul-swift/complex_scenario_test.swift
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/HangulCharacter.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-ahn.xml.template
+    /Users/naen/Git/libhangul-swift/simple_complex_test.swift
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-3y.xml.template
+    /Users/naen/Git/libhangul-swift/data/keyboards/hangul-keyboard-32.xml.template
+    /Users/naen/Git/libhangul-swift/Tests/LibHangulTests/UnicodeTests.swift
+    /Users/naen/Git/libhangul-swift/data/hanja/freq-hanjaeo.txt
+    /Users/naen/Git/libhangul-swift/Examples/HybridSolutionDemo.swift
+    /Users/naen/Git/libhangul-swift/Examples/demo.swift
+    /Users/naen/Git/libhangul-swift/real_world_concurrency_test.swift
+    /Users/naen/Git/libhangul-swift/Sources/LibHangul/HangulInputContext.swift
+    /Users/naen/Git/libhangul-swift/Examples/hanja-demo.swift
+warning: 'libhangul-swift': found 2 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/naen/Git/libhangul-swift/Examples/HybridSolutionDemo.swift
+    /Users/naen/Git/libhangul-swift/Examples/hanja-demo.swift
+[0/1] Planning build
+Building for debugging...
+[0/9] Write swift-version--1AB21518FC5DEDBE.txt
+[2/24] Compiling LibHangulTests UnicodeTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[3/24] Compiling LibHangulTests IntegrationTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[4/24] Compiling LibHangulTests PerformanceTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[5/24] Compiling LibHangulTests HangulInputContextTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[6/24] Compiling LibHangulTests LibHangulTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[7/24] Compiling LibHangulTests HanjaTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[8/24] Emitting module LibHangulTests
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[9/24] Compiling LibHangulTests HangulCharacterTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[10/24] Compiling LibHangulTests ComplexInputTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[11/24] Compiling LibHangulTests AdvancedInputContextTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[12/24] Compiling LibHangulTests ErrorHandlingTests.swift
+/Users/naen/Git/libhangul-swift/Tests/LibHangulTests/AdvancedInputContextTests.swift:9:8: error: no such module 'XCTest'
+  7 | //
+  8 | 
+  9 | import XCTest
+    |        `- error: no such module 'XCTest'
+ 10 | @testable import LibHangul
+ 11 | 
+[13/24] Emitting module demo
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:12:25: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 10 | // 1. 기본적인 한글 입력
+ 11 | print("1. 기본적인 한글 입력:")
+ 12 | let context = LibHangul.createInputContextLegacy(keyboard: "2") // 두벌식
+    |                         `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 13 | 
+ 14 | // "안녕" 입력 시뮬레이션 (관용 입력 모드로 종성 ㄴ 자동 변환)
+
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:80:26: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 78 | // 방법 2: 관용 입력 모드 사용
+ 79 | print("방법 2: 관용 입력 모드 사용")
+ 80 | let context2 = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                          `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 81 | context2.enableIdiomaticInput = true // 관용 입력 모드 활성화
+ 82 | print("  'dkssud' 입력 시 초성 ㄷ이 종성 ㄴ으로 자동 변환됨")
+
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:86:26: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 84 | // 방법 3: 세벌식 사용
+ 85 | print("방법 3: 세벌식 사용")
+ 86 | let context3 = LibHangul.createInputContextLegacy(keyboard: "3")
+    |                          `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 87 | print("  세벌식에서는 초성과 종성을 완벽하게 구분하여 입력 가능")
+ 88 | 
+
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:95:31: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 93 | print("• '안녕하세요' 입력 예제 (현재 구현의 한계로 인해 간단한 예제로 대체)")
+ 94 | let simpleInput = "dk"  // d + k = 아
+ 95 | let simpleContext = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                               `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 96 | 
+ 97 | var simpleResult = ""
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+[14/24] Emitting module final_test
+/Users/naen/Git/libhangul-swift/final_test.swift:19:29: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 17 | print("1. 기본 한글 음절 테스트:")
+ 18 | for (input, expected) in testWords {
+ 19 |     let context = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                             `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 20 |     var result = ""
+ 21 |     for char in input {
+
+/Users/naen/Git/libhangul-swift/final_test.swift:37:9: warning: initialization of immutable value 'success' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 35 |     }
+ 36 | 
+ 37 |     let success = result == expected
+    |         `- warning: initialization of immutable value 'success' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 38 |     print("  '\(input)' → '\(result)' (기대: '\(expected)') ✓")
+ 39 | }
+
+/Users/naen/Git/libhangul-swift/final_test.swift:43:25: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 41 | // 2. 영어 입력 테스트
+ 42 | print("\n2. 영어 입력 테스트:")
+ 43 | let context = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                         `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 44 | let englishText = "hello"
+ 45 | var englishResult = ""
+
+/Users/naen/Git/libhangul-swift/final_test.swift:65:30: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 63 | // 3. 혼합 입력 테스트
+ 64 | print("\n3. 한글+영어 혼합 입력 테스트:")
+ 65 | let mixedContext = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                              `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 66 | let mixedText = "rkhello"
+ 67 | var mixedResult = ""
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:12:25: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 10 | // 1. 기본적인 한글 입력
+ 11 | print("1. 기본적인 한글 입력:")
+ 12 | let context = LibHangul.createInputContextLegacy(keyboard: "2") // 두벌식
+    |                         `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 13 | 
+ 14 | // "안녕" 입력 시뮬레이션 (관용 입력 모드로 종성 ㄴ 자동 변환)
+
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:80:26: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 78 | // 방법 2: 관용 입력 모드 사용
+ 79 | print("방법 2: 관용 입력 모드 사용")
+ 80 | let context2 = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                          `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 81 | context2.enableIdiomaticInput = true // 관용 입력 모드 활성화
+ 82 | print("  'dkssud' 입력 시 초성 ㄷ이 종성 ㄴ으로 자동 변환됨")
+
+/Users/naen/Git/libhangul-swift/Examples/demo.swift:86:26: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 84 | // 방법 3: 세벌식 사용
+ 85 | print("방법 3: 세벌식 사용")
+ 86 | let context3 = LibHangul.createInputContextLegacy(keyboard: "3")
+    |                          `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 87 | print("  세벌식에서는 초성과 종성을 완벽하게 구분하여 입력 가능")
+ 88 | 
+
+/Users/naen/Git/libhangul-swift/final_test.swift:19:29: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 17 | print("1. 기본 한글 음절 테스트:")
+ 18 | for (input, expected) in testWords {
+ 19 |     let context = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                             `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 20 |     var result = ""
+ 21 |     for char in input {
+
+/Users/naen/Git/libhangul-swift/final_test.swift:37:9: warning: initialization of immutable value 'success' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 35 |     }
+ 36 | 
+ 37 |     let success = result == expected
+    |         `- warning: initialization of immutable value 'success' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 38 |     print("  '\(input)' → '\(result)' (기대: '\(expected)') ✓")
+ 39 | }
+
+/Users/naen/Git/libhangul-swift/final_test.swift:43:25: warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 41 | // 2. 영어 입력 테스트
+ 42 | print("\n2. 영어 입력 테스트:")
+ 43 | let context = LibHangul.createInputContextLegacy(keyboard: "2")
+    |                         `- warning: 'createInputContextLegacy(keyboard:)' is deprecated: 동시성 환경에서는 createThreadSafeInputContext()를 사용하세요 [#DeprecatedDeclaration]
+ 44 | let englishText = "hello"
+ 45 | var englishResult = ""
+
+error: fatalError

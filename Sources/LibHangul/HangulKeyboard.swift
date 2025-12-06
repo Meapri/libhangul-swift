@@ -72,10 +72,10 @@ public class HangulKeyboard {
         keyMap[Int(Character("r").asciiValue!)] = 0x1100  // ㄱ
         keyMap[Int(Character("R").asciiValue!)] = 0x1101  // ㄲ
         // 's' 키는 초성(ㄷ)으로 매핑 (종성 매핑은 유지)
-        keyMap[Int(Character("s").asciiValue!)] = 0x1102  // ㄷ
-        keyMap[Int(Character("E").asciiValue!)] = 0x1104  // ㄺ
-        keyMap[Int(Character("f").asciiValue!)] = 0x1105  // ㅁ
-        keyMap[Int(Character("a").asciiValue!)] = 0x1106  // ㅂ
+        keyMap[Int(Character("s").asciiValue!)] = 0x1102  // ㄴ
+        keyMap[Int(Character("E").asciiValue!)] = 0x1104  // ㄸ
+        keyMap[Int(Character("f").asciiValue!)] = 0x1105  // ㄹ
+        keyMap[Int(Character("a").asciiValue!)] = 0x1106  // ㅁ
         keyMap[Int(Character("q").asciiValue!)] = 0x1107  // ㅃ
         keyMap[Int(Character("Q").asciiValue!)] = 0x1108  // ㅄ
         keyMap[Int(Character("t").asciiValue!)] = 0x1109  // ㅅ
@@ -94,10 +94,9 @@ public class HangulKeyboard {
         keyMap[Int(Character("i").asciiValue!)] = 0x1163  // ㅑ
         keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ
         keyMap[Int(Character("j").asciiValue!)] = 0x1165  // ㅓ
-        keyMap[Int(Character("e").asciiValue!)] = 0x1166  // ㅔ
-        keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ (p도 동일하게 매핑)
-        keyMap[Int(Character("u").asciiValue!)] = 0x1167  // ㅕ
-        keyMap[Int(Character("P").asciiValue!)] = 0x1168  // ㅖ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1103  // ㄷ (초성)
+        // keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ (p도 동일하게 매핑) -> Incorrect. P is ㅖ.
+        keyMap[Int(Character("p").asciiValue!)] = 0x1168  // ㅖ
         keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ (초성 매핑보다 우선)
         keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ
         keyMap[Int(Character("n").asciiValue!)] = 0x116E  // ㅜ

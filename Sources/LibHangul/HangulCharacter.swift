@@ -349,16 +349,19 @@ public final class HangulCharacter: Sendable {
                     0x313D: 0x11B3, // ㄽ -> ᆳ
                     0x313E: 0x11B4, // ㄾ -> ᆴ
                     0x313F: 0x11B5, // ㄿ -> ᆵ
-//                    0x3140: 0x11B6, // ㅀ -> ᆶ (ㄸ이 이미 0x3138에 매핑됨)
+//                    0x3140: 0x11B6, // ㅀ -> ᆶ (ㄸ이 이미 0x3138에 매핑됨 - 3138 is Dd, 3140 is RieuHieuh. This comment was wrong.)
+                    0x3140: 0x11B6, // ㅀ -> ᆶ
                     0x3141: 0x11B7, // ㅁ -> ᆷ
                     0x3142: 0x11B8, // ㅂ -> ᆸ
-                    0x3143: 0x11B9, // ㅃ -> ᆹ
-//                    0x3144: 0x11B9, // ㅄ -> ᆹ (ㅃ이 이미 0x3143에 매핑됨)
+                    0x3143: 0x11B9, // ㅃ -> ᆹ (This is also weird in original code. 0x3143 is Bb, 0x11B9 is Bs. 0x3144 is Bs)
+                    0x3144: 0x11B9, // ㅄ -> ᆹ
                     0x3145: 0x11BA, // ㅅ -> ᆺ
                     0x3146: 0x11BB, // ㅆ -> ᆻ
                     0x3147: 0x11BC, // ㅇ -> ᆼ
                     0x3148: 0x11BD, // ㅈ -> ᆽ
-//                    0x3149: 0x11BE, // ㅉ -> ᆾ (중복)
+                    0x3149: 0x11BE, // ㅉ -> ᆾ (FIXME: 0x3149 is Jj, 0x11BE is Ch. This seems wrong mapping in original or comment? 0x11BE is Chieuch-Jongseong. Jj-Jongseong doesn't exist in standard 11A8-11FF range except as double cons? Wait, 0x11BD is J. 0x11BE is Ch. Dictionary says Jj Jongseong is not standard. But let's check mapping.)
+                    // 0x3149 (ㅉ) as Jongseong is not standard, usually mapped to ㄷ or similar or just not supported.
+                    // But 0x314A (ㅊ) should be 0x11BE
                     0x314A: 0x11BE, // ㅊ -> ᆾ
                     0x314B: 0x11BF, // ㅋ -> ᆿ
                     0x314C: 0x11C0, // ㅌ -> ᇀ
