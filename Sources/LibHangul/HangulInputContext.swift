@@ -593,21 +593,12 @@ public final class HangulInputContext {
                 if syllable != 0 {
                     result.append(syllable)
                 } else {
-                    // 완성되지 않은 음절 처리
+                    // 완성되지 않은 음절 처리 - 자모를 호환 자모로 변환하여 출력
                     let jamos = buffer.getJamoString()
-                    // 완성되지 않은 초성만 있는 경우는 처리하지 않음 (버퍼 비움)
-                    if jamos.count == 1 && HangulCharacter.isChoseong(jamos[0]) && buffer.jungseong == 0 {
-                        // 초성만 있고 중성이 없는 경우는 처리하지 않음
-                        // 실제 한글 입력기에서는 이 상태로 남겨두지 않음
-                    } else {
-                        // 다른 경우는 기존 로직 적용
-                        for jamo in jamos {
-                            if HangulCharacter.isChoseong(jamo) && buffer.jungseong == 0 {
-                                result.append(HangulCharacter.compatibilityJamoToJamo(jamo, as: .choseong))
-                            } else {
-                                result.append(jamo)
-                            }
-                        }
+                    for jamo in jamos {
+                        // 초성/중성/종성을 호환 자모로 변환
+                        let compatJamo = HangulCharacter.jamoToCJamo(jamo)
+                        result.append(compatJamo)
                     }
                 }
             } else {

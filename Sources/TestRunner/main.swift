@@ -462,8 +462,6 @@ class TestRunner {
         assertEquals(result1, "한글입력기", "Bug Fix: 한글입력기")
         
         // Bug 2: "바뀌어" -> "박귀어"
-        // When vowel follows double consonant jongseong (ㄲ, ㅆ), the ENTIRE double consonant
-        // should move to next syllable as choseong, not be split.
         reset()
         processInput("qkRnldj")
         let result2 = getCommitString() + getPreeditString()
@@ -474,6 +472,39 @@ class TestRunner {
         processInput("tkT")
         let result3 = getCommitString() + getPreeditString()
         assertEquals(result3, "샀", "Bug Fix: 샀 (tkT -> 샀)")
+        
+        // Bug 4: ㅇ (d) key alone, then flush - should produce valid output
+        reset()
+        _ = inputContext.process(Int(Character("d").asciiValue!)) // ㅇ
+        let preeditD = getPreeditString()
+        print("DEBUG: ㅇ alone preedit: '\(preeditD)' (hex: \(preeditD.unicodeScalars.map { String(format: "%04X", $0.value) }))")
+        
+        // Flush (simulating end of input or arrow key)
+        let flushedD = inputContext.flush()
+        let flushedDStr = flushedD.compactMap { UnicodeScalar($0) }.map { String($0) }.joined()
+        print("DEBUG: ㅇ flush result: '\(flushedDStr)' (hex: \(flushedD.map { String(format: "%04X", $0) }))")
+        
+        // Bug 5: ㅁ (a) key alone, then flush
+        reset()
+        _ = inputContext.process(Int(Character("a").asciiValue!)) // ㅁ
+        let preeditA = getPreeditString()
+        print("DEBUG: ㅁ alone preedit: '\(preeditA)' (hex: \(preeditA.unicodeScalars.map { String(format: "%04X", $0.value) }))")
+        
+        let flushedA = inputContext.flush()
+        let flushedAStr = flushedA.compactMap { UnicodeScalar($0) }.map { String($0) }.joined()
+        print("DEBUG: ㅁ flush result: '\(flushedAStr)' (hex: \(flushedA.map { String(format: "%04X", $0) }))")
+        
+        // Bug 6: ㅇ + ㅇ (repeated key) - should work
+        reset()
+        processInput("dd") // ㅇ + ㅇ
+        let resultDD = getCommitString() + getPreeditString()
+        print("DEBUG: ㅇㅇ result: '\(resultDD)' (hex: \(resultDD.unicodeScalars.map { String(format: "%04X", $0.value) }))")
+        
+        // Bug 7: ㅁ + ㅁ (repeated key)
+        reset()
+        processInput("aa") // ㅁ + ㅁ
+        let resultAA = getCommitString() + getPreeditString()
+        print("DEBUG: ㅁㅁ result: '\(resultAA)' (hex: \(resultAA.unicodeScalars.map { String(format: "%04X", $0.value) }))")
     }
 
     func runAll() {
