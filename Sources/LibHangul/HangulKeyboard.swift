@@ -87,40 +87,31 @@ public class HangulKeyboard {
         keyMap[Int(Character("x").asciiValue!)] = 0x1110  // ㅌ
         keyMap[Int(Character("v").asciiValue!)] = 0x1111  // ㅍ
         keyMap[Int(Character("g").asciiValue!)] = 0x1112  // ㅎ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1103  // ㄷ (Moved from Vowel section)
 
         // 모음 - 두벌식 표준 매핑
         keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
-        keyMap[Int(Character("o").asciiValue!)] = 0x1169  // ㅗ (초성 매핑보다 우선)
+        keyMap[Int(Character("o").asciiValue!)] = 0x1162  // ㅐ (Corrected from ㅗ)
         keyMap[Int(Character("i").asciiValue!)] = 0x1163  // ㅑ
-        keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ
+        keyMap[Int(Character("O").asciiValue!)] = 0x1164  // ㅒ (Shift+ㅐ)
         keyMap[Int(Character("j").asciiValue!)] = 0x1165  // ㅓ
-        keyMap[Int(Character("e").asciiValue!)] = 0x1103  // ㄷ (초성)
-        // keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ (p도 동일하게 매핑) -> Incorrect. P is ㅖ.
-        keyMap[Int(Character("p").asciiValue!)] = 0x1168  // ㅖ
-        keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ (초성 매핑보다 우선)
+        keyMap[Int(Character("u").asciiValue!)] = 0x1167  // ㅕ (Added)
+        keyMap[Int(Character("p").asciiValue!)] = 0x1166  // ㅔ (Corrected from ㅖ)
+        keyMap[Int(Character("P").asciiValue!)] = 0x1168  // ㅖ (Shift+ㅔ -> ㅖ)
+        
+        keyMap[Int(Character("h").asciiValue!)] = 0x1169  // ㅗ
+        // keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ (Correct)
         keyMap[Int(Character("y").asciiValue!)] = 0x116D  // ㅛ
         keyMap[Int(Character("n").asciiValue!)] = 0x116E  // ㅜ
         keyMap[Int(Character("b").asciiValue!)] = 0x1172  // ㅠ
         keyMap[Int(Character("m").asciiValue!)] = 0x1173  // ㅡ
-        keyMap[Int(Character("l").asciiValue!)] = 0x1175  // ㅣ (초성 매핑보다 우선)
+        keyMap[Int(Character("l").asciiValue!)] = 0x1175  // ㅣ
 
         // 종성 위치
-        keyMap[Int(Character("F").asciiValue!)] = 0x11A8  // ㄱ
-        keyMap[Int(Character("R").asciiValue!)] = 0x11A9  // ㄲ
-        keyMap[Int(Character("s").asciiValue!)] = 0x11AB  // ㄴ (초성 매핑보다 우선)
-        keyMap[Int(Character("T").asciiValue!)] = 0x11AB  // ㄴ
-        keyMap[Int(Character("C").asciiValue!)] = 0x11AE  // ㄹ
-        keyMap[Int(Character("E").asciiValue!)] = 0x11B7  // ㅁ
-        keyMap[Int(Character("7").asciiValue!)] = 0x11B8  // ㅂ
-        keyMap[Int(Character("8").asciiValue!)] = 0x11BA  // ㅅ
-        keyMap[Int(Character("D").asciiValue!)] = 0x11BB  // ㅆ
-        keyMap[Int(Character("X").asciiValue!)] = 0x11BC  // ㅇ
-        keyMap[Int(Character("4").asciiValue!)] = 0x11BD  // ㅈ
-        keyMap[Int(Character("V").asciiValue!)] = 0x11BE  // ㅊ
-        keyMap[Int(Character("5").asciiValue!)] = 0x11BF  // ㅋ
-        keyMap[Int(Character("%").asciiValue!)] = 0x11C0  // ㅌ
-        keyMap[Int(Character("^").asciiValue!)] = 0x11C1  // ㅍ
-        keyMap[Int(Character("&").asciiValue!)] = 0x11C2  // ㅎ
+        // 종성 위치 - REMOVED: 2-set uses Choseong codes which are converted to Jongseong by context
+        // The previous mappings here were overwriting Choseong mappings (e.g. R, s) and adding non-standard number mappings.
+        // We rely on standard Choseong mappings (Lines 72-90) and HangulBuffer's choseongToJongseong conversion.
+
     }
 }
 
@@ -134,9 +125,9 @@ public final class HangulKeyboardDefault: HangulKeyboard {
 
     /// 추가적인 키 매핑 설정
     private func setupAdditionalMappings() {
-        // 1 키를 종성 ㄴ으로 매핑 (두벌식용)
-        keyMap[Int(Character("1").asciiValue!)] = 0x11AB  // ㄴ (종성용)
-        // 불필요한 매핑 제거를 하지 않음 - 모든 키가 한글 입력에 사용되도록 함
+        // 1 키를 종성 ㄴ으로 매핑 (두벌식용) - REMOVED for Standard Compliance
+        // keyMap[Int(Character("1").asciiValue!)] = 0x11AB
+        // 불필요한 매핑 제거를 하지 않음
     }
 
     public override func mapKey(_ key: Int) -> UCSChar {

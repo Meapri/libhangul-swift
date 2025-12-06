@@ -81,10 +81,24 @@ public final class HangulBuffer {
 
         // 스택이 비어있으면 현재 상태에서 제거
         if jongseong != 0 {
+            // 복합 종성 분해 시도
+            let (first, second) = HangulCharacter.decomposeJongseong(jongseong)
+            if second != 0 {
+                jongseong = first
+                return second
+            }
+            
             let result = jongseong
             jongseong = 0
             return result
         } else if jungseong != 0 {
+            // 복합 중성 분해 시도
+            let (first, second) = HangulCharacter.decomposeJungseong(jungseong)
+            if second != 0 {
+                jungseong = first
+                return second
+            }
+
             let result = jungseong
             jungseong = 0
             return result

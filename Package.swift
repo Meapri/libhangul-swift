@@ -38,6 +38,15 @@ let package = Package(
             ]
         ),
 
+        .executableTarget(
+            name: "TestRunner",
+            dependencies: ["LibHangul"],
+            path: "Sources/TestRunner",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
+
 //        .executableTarget(
 //            name: "final-test",
 //            dependencies: ["LibHangul"],

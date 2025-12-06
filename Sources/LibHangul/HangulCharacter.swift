@@ -409,4 +409,68 @@ public final class HangulCharacter: Sendable {
     }
 
 
+    /// 종성을 초성으로 변환
+    /// - Parameter jongseong: 변환할 종성
+    /// - Returns: 대응되는 초성, 없으면 0
+    public static func jongseongToChoseong(_ jongseong: UCSChar) -> UCSChar {
+        // choseongToJongseong의 역방향 매핑
+        let table: [UCSChar: UCSChar] = [
+            0x11A8: 0x1100, // ㄱ -> ㄱ
+            0x11A9: 0x1101, // ㄲ -> ㄲ
+            0x11AB: 0x1102, // ㄴ -> ㄴ
+            0x11AE: 0x1103, // ㄷ -> ㄷ
+            0x11AF: 0x1105, // ㄹ -> ㄹ
+            0x11B7: 0x1106, // ㅁ -> ㅁ
+            0x11B8: 0x1107, // ㅂ -> ㅂ
+            0x11BA: 0x1109, // ㅅ -> ㅅ
+            0x11BB: 0x110A, // ㅆ -> ㅆ
+            0x11BC: 0x110B, // ㅇ -> ㅇ
+            0x11BD: 0x110C, // ㅈ -> ㅈ
+            0x11BE: 0x110E, // ㅊ -> ㅊ
+            0x11BF: 0x110F, // ㅋ -> ㅋ
+            0x11C0: 0x1110, // ㅌ -> ㅌ
+            0x11C1: 0x1111, // ㅍ -> ㅍ
+            0x11C2: 0x1112  // ㅎ -> ㅎ
+        ]
+        return table[jongseong] ?? 0
+    }
+
+    /// 복합 종성을 분해
+    /// - Parameter jongseong: 분해할 종성
+    /// - Returns: (앞 종성, 뒤 종성). 단일 종성이면 (원본, 0) 반환
+    public static func decomposeJongseong(_ jongseong: UCSChar) -> (UCSChar, UCSChar) {
+        // 복합 종성 분해 테이블
+        let table: [UCSChar: (UCSChar, UCSChar)] = [
+            0x11AA: (0x11A8, 0x11BA), // ㄳ -> ㄱ, ㅅ
+            0x11AC: (0x11AB, 0x11BD), // ㄵ -> ㄴ, ㅈ
+            0x11AD: (0x11AB, 0x11C2), // ㄶ -> ㄴ, ㅎ
+            0x11B0: (0x11AF, 0x11A8), // ㄺ -> ㄹ, ㄱ
+            0x11B1: (0x11AF, 0x11B7), // ㄻ -> ㄹ, ㅁ
+            0x11B2: (0x11AF, 0x11B8), // ㄼ -> ㄹ, ㅂ
+            0x11B3: (0x11AF, 0x11BA), // ㄽ -> ㄹ, ㅅ
+            0x11B4: (0x11AF, 0x11C0), // ㄾ -> ㄹ, ㅌ
+            0x11B5: (0x11AF, 0x11C1), // ㄿ -> ㄹ, ㅍ
+            0x11B6: (0x11AF, 0x11C2), // ㅀ -> ㄹ, ㅎ
+            0x11B9: (0x11B8, 0x11BA)  // ㅄ -> ㅂ, ㅅ
+        ]
+        return table[jongseong] ?? (jongseong, 0)
+    }
+
+    /// 복합 중성을 분해
+    /// - Parameter jungseong: 분해할 중성
+    /// - Returns: (앞 중성, 뒤 중성). 단일 중성이면 (원본, 0) 반환
+    public static func decomposeJungseong(_ jungseong: UCSChar) -> (UCSChar, UCSChar) {
+        // 복합 중성 분해 테이블
+        let table: [UCSChar: (UCSChar, UCSChar)] = [
+            0x116A: (0x1169, 0x1161), // ㅘ -> ㅗ, ㅏ
+            0x116B: (0x1169, 0x1162), // ㅙ -> ㅗ, ㅐ
+            0x116C: (0x1169, 0x1175), // ㅚ -> ㅗ, ㅣ
+            0x116F: (0x116E, 0x1165), // ㅝ -> ㅜ, ㅓ
+            0x1170: (0x116E, 0x1166), // ㅞ -> ㅜ, ㅔ
+            0x1171: (0x116E, 0x1175), // ㅟ -> ㅜ, ㅣ
+            0x1174: (0x1173, 0x1175), // ㅢ -> ㅡ, ㅣ
+        ]
+        return table[jungseong] ?? (jungseong, 0)
+    }
+
 }

@@ -229,7 +229,10 @@ public final class HangulInputContext {
             // 매핑되지 않은 키는 영어/기호로 처리하여 바로 커밋
             if !buffer.isEmpty {
                 let flushResult = safeFlush()
-                if case .failure(let error) = flushResult {
+                switch flushResult {
+                case .success(let flushed):
+                    commitString.append(contentsOf: flushed)
+                case .failure(let error):
                     return .failure(error)
                 }
             }
@@ -241,7 +244,10 @@ public final class HangulInputContext {
         // 한글 자모가 아닌 경우
         if !HangulCharacter.isJamo(jamo) {
             let flushResult = safeFlush()
-            if case .failure(let error) = flushResult {
+            switch flushResult {
+            case .success(let flushed):
+                commitString.append(contentsOf: flushed)
+            case .failure(let error):
                 return .failure(error)
             }
             commitString.append(jamo)
@@ -270,7 +276,10 @@ public final class HangulInputContext {
         // 버퍼가 가득 찼는지 확인
         if buffer.getJamoString().count >= maxBufferSize {
             let flushResult = safeFlush()
-            if case .failure(let error) = flushResult {
+            switch flushResult {
+            case .success(let flushed):
+                commitString.append(contentsOf: flushed)
+            case .failure(let error):
                 throw error
             }
         }
@@ -294,43 +303,71 @@ public final class HangulInputContext {
             processedJamo = 0x11AB // 종성 ㄴ
         }
 
+        // [New Logic] 음절 분리 확인 (Jongseong + Jungseong -> Next Syllable)
+        if HangulCharacter.isJungseong(processedJamo) && buffer.jongseong != 0 {
+            // 현재 종성을 분해
+            let (first, second) = HangulCharacter.decomposeJongseong(buffer.jongseong)
+            
+            // 이동할 종성 (다음 글자의 초성이 될 부분)
+            let suffixJongseong = (second != 0) ? second : first
+            
+            // 남을 종성 (현재 글자에 남을 부분)
+            let prefixJongseong = (second != 0) ? first : 0
+            
+            // 이동할 종성이 초성으로 변환 가능한지 확인
+            let nextChoseong = HangulCharacter.jongseongToChoseong(suffixJongseong)
+            if nextChoseong != 0 {
+                // 분리 발생!
+                
+                // 1. 현재 버퍼에서 종성 제거/수정
+                let _ = buffer.pop() // 기존 종성 제거
+                if prefixJongseong != 0 {
+                    let _ = buffer.push(prefixJongseong) // 남을 앞부분 다시 추가
+                }
+                
+                // 2. 현재 음절 커밋 (flush)
+                // flush 메서드는 버퍼를 비우므려, 커밋된 문자열에 추가됨
+                let flushResult = safeFlush()
+                if case .success(let flushed) = flushResult {
+                    commitString.append(contentsOf: flushed)
+                }
+                
+                // 3. 다음 음절 시작 (초성 설정)
+                let _ = buffer.push(nextChoseong)
+                updatePreeditString()
+                
+                // 4. 입력된 중성 처리 (재귀 호출 대신 직접 push하지 않고 flow 진행)
+                // 여기서 바로 push하면 됨.
+                // processedJamo is Jungseong, and we just set Choseong, so valid.
+            }
+        }
+
         // 자모를 버퍼에 추가
         let success = buffer.push(processedJamo)
         if success {
             updatePreeditString()
 
-            // 완성된 음절이 있는지 확인하고 커밋
-            // 완성된 음절이 있는지 확인하고 커밋
-            /*
-            let afterPush = buffer.buildSyllable()
-
-            /*
-            if beforePush != 0 && afterPush != 0 && beforePush != afterPush {
-                // 이전 음절이 완성되었으므로 커밋
-                commitString.append(beforePush)
-
-                // 현재 완성된 음절이 있으면 다시 커밋
-                if afterPush != 0 {
-                    commitString.append(afterPush)
-                    // 버퍼 초기화 (현재 음절 처리 완료)
-                    buffer.clear()
-                }
-            } else */
-            if afterPush != 0 {
-                // 완성된 음절이 있으면 커밋
-                commitString.append(afterPush)
-                // 버퍼 초기화 - 하지만 종성 입력 시에는 초기화하지 않음
-                if !HangulCharacter.isJongseong(processedJamo) && buffer.jongseong == 0 {
-                    buffer.clear()
-                }
-            }
-            */
-
             // 배열 용량 관리
             manageArrayCapacity()
-        }
 
-        return success
+            return true
+        } else {
+            // 추가 실패 (결합 불가 등): 현재 버퍼를 커밋하고 새로 시작
+            let flushResult = safeFlush()
+            if case .success(let flushed) = flushResult {
+                commitString.append(contentsOf: flushed)
+            }
+            
+            // 다시 시도
+            let retrySuccess = buffer.push(processedJamo)
+            if retrySuccess {
+                updatePreeditString()
+                return true
+            } else {
+                // 재시도도 실패하면 오류
+                throw HangulInputError.inconsistentBufferState(reason: "Push retry failed after flush")
+            }
+        }
     }
 
     /// 백스페이스 처리
