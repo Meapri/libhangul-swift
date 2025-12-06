@@ -310,13 +310,16 @@ public final class HangulInputContext {
                 // 분리 발생!
                 
                 // 1. 현재 버퍼에서 종성 제거/수정
-                let _ = buffer.pop() // 기존 종성 제거
-                if prefixJongseong != 0 {
-                    let _ = buffer.push(prefixJongseong) // 남을 앞부분 다시 추가
-                }
+                // NOTE: buffer.pop()은 복합 종성을 자동 분해하여 첫 부분만 남긴다.
+                //       단일 종성의 경우 완전히 제거된다.
+                let _ = buffer.pop()
+                
+                // pop() 후 jongseong이 0이 되었고, 원래 남겨야 할 prefix가 있다면 다시 추가
+                // (단일 종성이 완전히 제거된 경우에는 prefix=0이므로 추가하지 않음)
+                // (복합 종성의 경우 pop()이 이미 첫 부분을 남겨두므로 추가하지 않음)
+                // 결론: pop()이 잘 처리하므로 추가 push 불필요
                 
                 // 2. 현재 음절 커밋 (flush)
-                // flush 메서드는 버퍼를 비우므려, 커밋된 문자열에 추가됨
                 let flushResult = safeFlush()
                 if case .success(let flushed) = flushResult {
                     commitString.append(contentsOf: flushed)
@@ -326,9 +329,7 @@ public final class HangulInputContext {
                 let _ = buffer.push(nextChoseong)
                 updatePreeditString()
                 
-                // 4. 입력된 중성 처리 (재귀 호출 대신 직접 push하지 않고 flow 진행)
-                // 여기서 바로 push하면 됨.
-                // processedJamo is Jungseong, and we just set Choseong, so valid.
+                // 4. 입력된 중성 처리는 아래 buffer.push(processedJamo)에서 수행됨
             }
         }
 

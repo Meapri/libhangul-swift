@@ -455,11 +455,13 @@ class TestRunner {
     func testBugReports() {
         print("\n--- Running Bug Report Tests ---")
         
-        // Bug: "샀" -> "사T"
-        
-        // Case 1: "샀" (s k T) -> t k T
-        // t(ㅅ) + k(ㅏ) = 사
-        // T(ㅆ) -> Should combine as Jongseong
+        // Bug: "한글입력기" -> "한글입렦기"
+        // Input: gks(한) rmf(글) dlq(입) fur(력) rl(기)
+        // The second ㄱ in "력기" is combining with the first instead of starting new syllable
+        reset()
+        processInput("gksrmfdlqfurrl")
+        let result2 = getCommitString() + getPreeditString()
+        assertEquals(result2, "한글입력기", "Bug Fix: 한글입력기")
         
         reset()
         processInput("tkT")
