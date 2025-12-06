@@ -148,13 +148,6 @@ public final class HangulInputContext {
         get { configuration.forceFilenameCompatibilityMode }
         set { configuration.forceFilenameCompatibilityMode = newValue }
     }
-    
-    /// 쌍자음 결합 활성화 여부 (ㄱ+ㄱ=ㄲ 등)
-    /// false이면 ㄱ 연타 시 ㄱㄱ으로 개별 입력됨
-    public var enableDoubleConsonantCombination: Bool {
-        get { buffer.enableDoubleConsonantCombination }
-        set { buffer.enableDoubleConsonantCombination = newValue }
-    }
 
     /// 델리게이트
     public weak var delegate: HangulInputContextDelegate?

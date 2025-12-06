@@ -32,19 +32,14 @@ public final class HangulBuffer {
     /// 자모 스택 (Unused in single-syllable buffer design, kept for API compatibility if needed, but removing logic)
     // private var stack: [UCSChar] = [] // Removed
     private let maxStackSize: Int
-    
-    /// 쌍자음 결합 활성화 여부 (ㄱ+ㄱ=ㄲ 등)
-    /// false이면 ㄱㄱ로 개별 입력됨
-    public var enableDoubleConsonantCombination: Bool = true
 
     /// 최대 스택 크기
     public var maxStackSizeValue: Int {
         maxStackSize
     }
 
-    public init(maxStackSize: Int = 12, enableDoubleConsonantCombination: Bool = true) {
+    public init(maxStackSize: Int = 12) {
         self.maxStackSize = maxStackSize
-        self.enableDoubleConsonantCombination = enableDoubleConsonantCombination
     }
 
     /// 버퍼가 비어있는지 확인
@@ -158,11 +153,9 @@ public final class HangulBuffer {
             choseong = jamo
             return true
         } else if jungseong == 0 {
-            // 초성이 있고 중성이 없으면 초성 결합 시도
-            if let combined = combineChoseong(choseong, jamo) {
-                choseong = combined
-                return true
-            }
+            // 초성이 있고 중성이 없으면 결합하지 않고 새 음절 시작
+            // (ㄱ + ㄱ = ㄱㄱ, not ㄲ)
+            return false
         } else if jongseong == 0 {
             // 초성, 중성이 있고 종성이 없으면 종성으로 변환 후 추가
             let jong = HangulCharacter.choseongToJongseong(jamo)
@@ -269,10 +262,6 @@ public final class HangulBuffer {
     ]
 
     private func combineChoseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
-        // 쌍자음 결합 비활성화 시 nil 반환 (결합 안 함)
-        if !enableDoubleConsonantCombination {
-            return nil
-        }
         return Self.choseongCombinations[a]?[b]
     }
 
