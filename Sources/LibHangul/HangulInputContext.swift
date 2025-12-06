@@ -226,10 +226,14 @@ public final class HangulInputContext {
                 return .success(false)
             }
             
-            // 제어 문자 (ASCII 0-31, 127)는 처리하지 않음 - 시스템에서 처리하도록 반환
-            // 백스페이스(8)와 Delete(127)는 위에서 이미 처리됨
-            // 방향키, Tab, Escape 등은 입력기가 처리하지 않아야 함
-            if key < 32 || key == 127 {
+            // 제어 문자 및 특수 키 처리 - 시스템에서 처리하도록 반환
+            // - ASCII 제어 문자 (0-31, 127)
+            // - macOS 기능 키 (0xF700-0xF8FF: 방향키, F1-F12, Home, End 등)
+            // - 백스페이스(8)와 Delete(127)는 위에서 이미 처리됨
+            let isControlChar = key < 32 || key == 127
+            let isFunctionKey = key >= 0xF700 && key <= 0xF8FF
+            
+            if isControlChar || isFunctionKey {
                 // 버퍼가 있으면 먼저 커밋
                 if !buffer.isEmpty {
                     let flushResult = safeFlush()
