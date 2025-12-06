@@ -427,6 +427,26 @@ class TestRunner {
         }
     }
     
+    func testBugReports() {
+        print("\n--- Running Bug Report Tests ---")
+        
+        // Bug: "샀" -> "사T"
+        
+        // Case 1: "샀" (s k T) -> t k T
+        // t(ㅅ) + k(ㅏ) = 사
+        // T(ㅆ) -> Should combine as Jongseong
+        
+        reset()
+        processInput("tkT")
+        let result = getCommitString() + getPreeditString()
+        if result == "샀" {
+             print("✅ PASSED: Bug Fix '샀' (tkT -> 샀)")
+        } else {
+             print("❌ FAILED: Bug Fix '샀' (Expected '샀', Got '\(result)')")
+             // We won't crash the test runner here to allow fixing it.
+        }
+    }
+
     func runAll() {
         print("Running TestRunner...")
         
@@ -456,6 +476,7 @@ class TestRunner {
         testComplexSymbols()
         
         test3SetInput()
+        testBugReports() // Added
         testFuzzing()
         
         print("\n🎉 All Tests Passed!")

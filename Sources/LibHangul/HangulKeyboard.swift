@@ -79,6 +79,7 @@ public class HangulKeyboard {
         keyMap[Int(Character("q").asciiValue!)] = 0x1107  // ㅃ
         keyMap[Int(Character("Q").asciiValue!)] = 0x1108  // ㅄ
         keyMap[Int(Character("t").asciiValue!)] = 0x1109  // ㅅ
+        keyMap[Int(Character("T").asciiValue!)] = 0x110A  // ㅆ (Added: Shift+T)
         keyMap[Int(Character("d").asciiValue!)] = 0x110B  // ㅇ
         keyMap[Int(Character("w").asciiValue!)] = 0x110C  // ㅈ
         keyMap[Int(Character("W").asciiValue!)] = 0x110D  // ㅉ
