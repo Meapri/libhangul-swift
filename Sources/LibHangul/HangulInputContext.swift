@@ -225,8 +225,22 @@ public final class HangulInputContext {
             if key == 0 {
                 return .success(false)
             }
+            
+            // 제어 문자 (ASCII 0-31, 127)는 처리하지 않음 - 시스템에서 처리하도록 반환
+            // 백스페이스(8)와 Delete(127)는 위에서 이미 처리됨
+            // 방향키, Tab, Escape 등은 입력기가 처리하지 않아야 함
+            if key < 32 || key == 127 {
+                // 버퍼가 있으면 먼저 커밋
+                if !buffer.isEmpty {
+                    let flushResult = safeFlush()
+                    if case .success(let flushed) = flushResult {
+                        commitString.append(contentsOf: flushed)
+                    }
+                }
+                return .success(false)  // 시스템이 처리하도록 false 반환
+            }
 
-            // 매핑되지 않은 키는 영어/기호로 처리하여 바로 커밋
+            // 매핑되지 않은 일반 문자(영어/기호)는 커밋
             if !buffer.isEmpty {
                 let flushResult = safeFlush()
                 switch flushResult {
