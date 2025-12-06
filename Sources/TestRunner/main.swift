@@ -505,6 +505,33 @@ class TestRunner {
         processInput("aa") // ㅁ + ㅁ
         let resultAA = getCommitString() + getPreeditString()
         print("DEBUG: ㅁㅁ result: '\(resultAA)' (hex: \(resultAA.unicodeScalars.map { String(format: "%04X", $0.value) }))")
+        
+        // Comprehensive test: All choseong keys should flush to valid compatibility jamo
+        print("\n--- Testing All Choseong Keys ---")
+        let choseongKeys = ["r", "s", "e", "f", "a", "q", "t", "d", "w", "c", "z", "x", "v", "g"]
+        var allPassed = true
+        for key in choseongKeys {
+            reset()
+            _ = inputContext.process(Int(Character(key).asciiValue!))
+            let flushed = inputContext.flush()
+            if flushed.isEmpty {
+                print("❌ FAILED: Key '\(key)' flush returned empty!")
+                allPassed = false
+            } else {
+                let hex = flushed.map { String(format: "%04X", $0) }.joined(separator: ", ")
+                let str = flushed.compactMap { UnicodeScalar($0) }.map { String($0) }.joined()
+                // Verify it's a compatibility jamo (0x3131-0x318E)
+                if let first = flushed.first, first >= 0x3131 && first <= 0x318E {
+                    print("✅ '\(key)' -> '\(str)' [\(hex)]")
+                } else {
+                    print("❌ FAILED: Key '\(key)' -> '\(str)' [\(hex)] - not compatibility jamo!")
+                    allPassed = false
+                }
+            }
+        }
+        if allPassed {
+            print("✅ All choseong keys produce valid compatibility jamo on flush")
+        }
     }
 
     func runAll() {
