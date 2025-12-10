@@ -3,17 +3,30 @@
 //  LibHangul
 //
 //  Swift 6 동시성 제한에 대응하는 스레드 안전한 한글 입력 컨텍스트 래퍼
+//  Lock 기반으로 구현되어 동기적 호출 지원
 //
 
 import Foundation
 
-/// 스레드 안전한 한글 입력 컨텍스트 액터
-/// Swift 6의 엄격한 동시성 제한을 준수하기 위한 래퍼
-public actor ThreadSafeHangulInputContext {
+/// 스레드 안전한 한글 입력 컨텍스트
+/// 
+/// NSLock을 사용하여 스레드 안전성을 보장하며, 동기적 호출을 지원합니다.
+/// InputMethodKit 등 동기 콜백 환경에서 사용할 수 있습니다.
+///
+/// ## 사용 예시
+/// ```swift
+/// let context = ThreadSafeHangulInputContext(keyboard: "2")
+/// let processed = context.process(Int(Character("g").asciiValue!))
+/// let preedit = context.getPreeditString()
+/// ```
+public final class ThreadSafeHangulInputContext: @unchecked Sendable {
 
     // MARK: - Properties
 
-    /// 내부적으로 사용하는 실제 컨텍스트 (actor에 의해 보호됨)
+    /// 동기화를 위한 Lock
+    private let lock = NSLock()
+    
+    /// 내부적으로 사용하는 실제 컨텍스트 (lock에 의해 보호됨)
     private var context: HangulInputContext
     private let configuration: HangulInputConfiguration
 
@@ -37,62 +50,87 @@ public actor ThreadSafeHangulInputContext {
         self.context = HangulInputContext(configuration: configuration)
     }
 
+    // MARK: - Private Helper
+    
+    /// Lock을 사용한 동기화 헬퍼
+    private func synchronized<T>(_ block: () -> T) -> T {
+        lock.lock()
+        defer { lock.unlock() }
+        return block()
+    }
+
     // MARK: - Public Methods
 
-    /// 키 입력 처리 (스레드 안전)
+    /// 키 입력 처리 (스레드 안전, 동기)
     /// - Parameter key: ASCII 키 코드
     /// - Returns: 키가 처리되었으면 true
     public func process(_ key: Int) -> Bool {
-        return context.process(key)
+        synchronized {
+            context.process(key)
+        }
     }
-
-
 
     /// 백스페이스 처리
     /// - Returns: 처리되었으면 true
     public func backspace() -> Bool {
-        return context.backspace()
+        synchronized {
+            context.backspace()
+        }
     }
 
     /// 버퍼 초기화
     public func reset() {
-        context.reset()
+        synchronized {
+            context.reset()
+        }
     }
 
     /// 현재 사전 편집 문자열 반환
     /// - Returns: 사전 편집 문자열
     public func getPreeditString() -> [UCSChar] {
-        return context.getPreeditString()
+        synchronized {
+            context.getPreeditString()
+        }
     }
 
     /// 커밋된 문자열 반환 및 초기화
     /// - Returns: 커밋된 문자열
     public func getCommitString() -> [UCSChar] {
-        return context.getCommitString()
+        synchronized {
+            context.getCommitString()
+        }
     }
 
     /// 모든 내용을 커밋
     /// - Returns: 커밋된 문자열
     public func flush() -> [UCSChar] {
-        return context.flush()
+        synchronized {
+            context.flush()
+        }
     }
 
     /// 키보드 설정
     /// - Parameter keyboard: 키보드 식별자
     public func setKeyboard(with identifier: String) {
-        context.setKeyboard(with: identifier)
+        synchronized {
+            context.setKeyboard(with: identifier)
+        }
     }
 
     /// 키보드 설정
     /// - Parameter keyboard: 키보드 객체
     public func setKeyboard(_ keyboard: HangulKeyboard) {
-        context.setKeyboard(keyboard)
+        synchronized {
+            context.setKeyboard(keyboard)
+        }
     }
 
     /// 출력 모드 설정
     /// - Parameter mode: 출력 모드
     public func setOutputMode(_ mode: HangulOutputMode) {
-        context.setOutputMode(mode)
+        synchronized {
+            context.setOutputMode(mode)
+        }
     }
 
     /// 옵션 설정
@@ -100,64 +138,72 @@ public actor ThreadSafeHangulInputContext {
     ///   - option: 옵션
     ///   - value: 설정값
     public func setOption(_ option: HangulInputContextOption, value: Bool) {
-        context.setOption(option, value: value)
+        synchronized {
+            context.setOption(option, value: value)
+        }
     }
 
     /// 옵션 확인
     /// - Parameter option: 확인할 옵션
     /// - Returns: 옵션이 설정되어 있으면 true
     public func getOption(_ option: HangulInputContextOption) -> Bool {
-        return context.getOption(option)
+        synchronized {
+            context.getOption(option)
+        }
     }
 
     /// 버퍼가 비어있는지 확인
     /// - Returns: 비어있으면 true
     public func isEmpty() -> Bool {
-        return context.isEmpty()
+        synchronized {
+            context.isEmpty()
+        }
     }
 
     /// 현재 상태를 문자열로 반환
     /// - Returns: 현재 상태를 나타내는 문자열
     public func currentStateDescription() -> String {
-        return context.currentStateDescription()
+        synchronized {
+            context.currentStateDescription()
+        }
     }
 
     // MARK: - Configuration Access
 
     /// 최대 버퍼 크기
     public var maxBufferSize: Int {
-        get { context.maxBufferSize }
-        set { context.maxBufferSize = newValue }
+        get { synchronized { context.maxBufferSize } }
+        set { synchronized { context.maxBufferSize = newValue } }
     }
 
     /// NFC 정규화 강제 사용
     public var forceNFCNormalization: Bool {
-        get { context.forceNFCNormalization }
-        set { context.forceNFCNormalization = newValue }
+        get { synchronized { context.forceNFCNormalization } }
+        set { synchronized { context.forceNFCNormalization = newValue } }
     }
 
     /// 관용 입력 모드 활성화 여부
     public var enableIdiomaticInput: Bool {
-        get { context.enableIdiomaticInput }
-        set { context.enableIdiomaticInput = newValue }
+        get { synchronized { context.enableIdiomaticInput } }
+        set { synchronized { context.enableIdiomaticInput = newValue } }
     }
 
     /// 버퍼 상태 모니터링 활성화
     public var enableBufferMonitoring: Bool {
-        get { context.enableBufferMonitoring }
-        set { context.enableBufferMonitoring = newValue }
+        get { synchronized { context.enableBufferMonitoring } }
+        set { synchronized { context.enableBufferMonitoring = newValue } }
     }
 
     /// 자동 오류 복구
     public var autoErrorRecovery: Bool {
-        get { context.autoErrorRecovery }
-        set { context.autoErrorRecovery = newValue }
+        get { synchronized { context.autoErrorRecovery } }
+        set { synchronized { context.autoErrorRecovery = newValue } }
     }
 
     /// 파일명 호환성 모드
     public var filenameCompatibilityMode: Bool {
-        get { context.filenameCompatibilityMode }
-        set { context.filenameCompatibilityMode = newValue }
+        get { synchronized { context.filenameCompatibilityMode } }
+        set { synchronized { context.filenameCompatibilityMode = newValue } }
     }
 
     // MARK: - State Checks
@@ -165,19 +211,25 @@ public actor ThreadSafeHangulInputContext {
     /// 초성이 있는지 확인
     /// - Returns: 초성이 있으면 true
     public func hasChoseong() -> Bool {
-        return context.hasChoseong()
+        synchronized {
+            context.hasChoseong()
+        }
     }
 
     /// 중성이 있는지 확인
     /// - Returns: 중성이 있으면 true
     public func hasJungseong() -> Bool {
-        return context.hasJungseong()
+        synchronized {
+            context.hasJungseong()
+        }
     }
 
     /// 종성이 있는지 확인
     /// - Returns: 종성이 있으면 true
     public func hasJongseong() -> Bool {
-        return context.hasJongseong()
+        synchronized {
+            context.hasJongseong()
+        }
     }
 
     // MARK: - Utility Methods
@@ -186,21 +238,27 @@ public actor ThreadSafeHangulInputContext {
     /// - Parameter text: 정규화할 텍스트
     /// - Returns: NFC 정규화된 문자열
     public func normalizeUnicode(_ text: [UCSChar]) -> [UCSChar] {
-        return context.normalizeUnicode(text)
+        synchronized {
+            context.normalizeUnicode(text)
+        }
     }
 
     /// 파일명용 정규화
     /// - Parameter text: 정규화할 텍스트
     /// - Returns: 파일명 호환성을 위한 정규화된 텍스트
     public func normalizeForFilename(_ text: [UCSChar]) -> [UCSChar] {
-        return context.normalizeForFilename(text)
+        synchronized {
+            context.normalizeForFilename(text)
+        }
     }
 
     /// 크로스플랫폼 호환성을 위한 변환
     /// - Parameter text: 변환할 텍스트
     /// - Returns: 플랫폼 호환성을 보장한 텍스트
     public func ensureCrossPlatformCompatibility(_ text: [UCSChar]) -> [UCSChar] {
-        return context.ensureCrossPlatformCompatibility(text)
+        synchronized {
+            context.ensureCrossPlatformCompatibility(text)
+        }
     }
 }
 
@@ -244,21 +302,23 @@ extension ThreadSafeHangulInputContext {
     /// - Parameter keys: 처리할 키들의 배열
     /// - Returns: 각 키 처리 결과
     public func processBatch(_ keys: [Int]) -> [HangulInputResult] {
-        var results: [HangulInputResult] = []
+        synchronized {
+            var results: [HangulInputResult] = []
 
-        for key in keys {
-            let processed = process(key)
-            let preedit = getPreeditString()
-            let committed = getCommitString()
+            for key in keys {
+                let processed = context.process(key)
+                let preedit = context.getPreeditString()
+                let committed = context.getCommitString()
 
-            results.append(HangulInputResult(
-                processed: processed,
-                preedit: preedit,
-                committed: committed
-            ))
+                results.append(HangulInputResult(
+                    processed: processed,
+                    preedit: preedit,
+                    committed: committed
+                ))
+            }
+
+            return results
         }
-
-        return results
     }
 
     /// 텍스트를 완전히 처리하고 결과를 반환

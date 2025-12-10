@@ -82,10 +82,22 @@ public protocol HangulInputContextDelegate: AnyObject {
 
 /// 한글 입력 컨텍스트
 /// C 코드의 struct _HangulInputContext에 대응
-/// ⚠️ DEPRECATED: 동시성 환경에서는 ThreadSafeHangulInputContext를 사용하세요
-/// 참고: Swift 6 동시성 제한으로 인해 이 클래스는 Sendable이 아닙니다.
-/// 단일 스레드 환경에서만 사용하세요.
-@available(*, deprecated, message: "동시성 환경에서는 ThreadSafeHangulInputContext를 사용하세요. 단일 스레드에서만 안전합니다.")
+///
+/// ## 스레드 안전성
+/// 이 클래스는 스레드 안전하지 않습니다.
+/// - **단일 스레드 환경**: 직접 사용 가능 (예: InputMethodKit 콜백)
+/// - **동시성 환경**: `ThreadSafeHangulInputContext` (Actor) 사용 권장
+///
+/// ## 사용 예시
+/// ```swift
+/// // 단일 스레드 (IMK, UI 등)
+/// let context = HangulInputContext(keyboard: "2")
+/// let processed = context.process(Int(Character("g").asciiValue!))
+///
+/// // 동시성 환경
+/// let safeContext = LibHangul.createThreadSafeInputContext()
+/// await safeContext.process(key)
+/// ```
 public final class HangulInputContext {
 
     // MARK: - Properties
