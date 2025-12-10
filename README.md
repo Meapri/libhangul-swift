@@ -47,29 +47,27 @@ dependencies: [
 
 ### 1. 기본 사용법 (Swift 6 권장)
 
-동시성 환경에서도 안전하게 사용할 수 있는 `ThreadSafeHangulInputContext`를 사용하세요.
+스레드 안전한 `ThreadSafeHangulInputContext`를 사용하세요. NSLock 기반으로 동기적으로 작동합니다.
 
 ```swift
 import LibHangul
 
 // 1. 컨텍스트 생성 (기본: 두벌식)
-let context = LibHangul.createThreadSafeInputContext()
+let context = LibHangul.createThreadSafeInputContext(keyboard: "2")
 
-Task {
-    // 2. 입력 처리 (비동기)
-    // 'ㅎ', 'ㅏ', 'ㄴ' 순서로 입력 시 -> "한"
-    _ = await context.process(Int(Character("g").asciiValue!)) // ㅎ
-    _ = await context.process(Int(Character("k").asciiValue!)) // ㅏ
-    _ = await context.process(Int(Character("s").asciiValue!)) // ㄴ
-    
-    // 3. 현재 조합 중인 상태 확인
-    let preedit = await context.getPreeditString() 
-    print(String(preedit.map { UnicodeScalar($0)! })) // 출력: "한"
-    
-    // 4. 입력 확정 및 비우기
-    let committed = await context.flush()
-    print(String(committed.map { UnicodeScalar($0)! })) // 출력: "한"
-}
+// 2. 입력 처리 (동기)
+// 'ㅎ', 'ㅏ', 'ㄴ' 순서로 입력 시 -> "한"
+_ = context.process(Int(Character("g").asciiValue!)) // ㅎ
+_ = context.process(Int(Character("k").asciiValue!)) // ㅏ
+_ = context.process(Int(Character("s").asciiValue!)) // ㄴ
+
+// 3. 현재 조합 중인 상태 확인
+let preedit = context.getPreeditString() 
+print(String(preedit.compactMap { UnicodeScalar($0) }.map { Character($0) })) // 출력: "한"
+
+// 4. 입력 확정 및 비우기
+let committed = context.flush()
+print(String(committed.compactMap { UnicodeScalar($0) }.map { Character($0) })) // 출력: "한"
 ```
 
 ### 2. 텍스트 일괄 처리
@@ -77,10 +75,10 @@ Task {
 문자열 전체를 한 번에 한글로 변환할 때 유용합니다.
 
 ```swift
-let context = LibHangul.createThreadSafeInputContext()
-let result = await context.processText("gksrmfdlqslek") // "한글입니다"
+let context = LibHangul.createThreadSafeInputContext(keyboard: "2")
+let result = context.processText("gksrmfdlqslek") // "한글입니다"
 
-print(String(result.committed.map { UnicodeScalar($0)! }))
+print(String(result.committed.compactMap { UnicodeScalar($0) }.map { Character($0) }))
 ```
 
 ## 🛠️ 고급 설정 (Advanced Usage)

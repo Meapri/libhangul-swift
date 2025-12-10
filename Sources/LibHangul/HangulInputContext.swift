@@ -9,54 +9,7 @@
 
 import Foundation
 
-/// 한글 입력 오류 타입
-public enum HangulInputError: Error, Sendable {
-    case bufferOverflow(maxSize: Int)
-    case invalidJamo(UCSChar)
-    case invalidKeyCode(Int)
-    case inconsistentBufferState(reason: String)
-    case unicodeNormalizationFailed(reason: String)
-    case keyboardNotFound(identifier: String)
-    case configurationError(reason: String)
-
-    public var errorDescription: String? {
-        switch self {
-        case .bufferOverflow(let maxSize):
-            return "버퍼가 가득 찼습니다 (최대 크기: \(maxSize))"
-        case .invalidJamo(let jamo):
-            return "잘못된 자모 코드: 0x\(String(format: "%04X", jamo))"
-        case .invalidKeyCode(let keyCode):
-            return "잘못된 키 코드: \(keyCode)"
-        case .inconsistentBufferState(let reason):
-            return "버퍼 상태가 일관되지 않음: \(reason)"
-        case .unicodeNormalizationFailed(let reason):
-            return "유니코드 정규화 실패: \(reason)"
-        case .keyboardNotFound(let identifier):
-            return "키보드를 찾을 수 없음: \(identifier)"
-        case .configurationError(let reason):
-            return "설정 오류: \(reason)"
-        }
-    }
-
-    public var recoverySuggestion: String? {
-        switch self {
-        case .bufferOverflow:
-            return "입력을 줄이거나 버퍼 크기를 늘려보세요"
-        case .invalidJamo:
-            return "올바른 한글 자모를 입력하세요"
-        case .invalidKeyCode:
-            return "올바른 키 코드를 입력하세요"
-        case .inconsistentBufferState:
-            return "입력 컨텍스트를 재설정해보세요"
-        case .unicodeNormalizationFailed:
-            return "텍스트의 유니코드 형식을 확인하세요"
-        case .keyboardNotFound:
-            return "지원되는 키보드 식별자를 확인하세요"
-        case .configurationError:
-            return "설정 값을 다시 확인하세요"
-        }
-    }
-}
+// HangulInputError는 HangulError로 통합되었습니다 (LibHangul.swift 참조)
 
 /// 입력 컨텍스트 옵션
 public enum HangulInputContextOption: Int, Sendable {
@@ -94,9 +47,9 @@ public protocol HangulInputContextDelegate: AnyObject {
 /// let context = HangulInputContext(keyboard: "2")
 /// let processed = context.process(Int(Character("g").asciiValue!))
 ///
-/// // 동시성 환경
+/// // 스레드 안전 (동기, NSLock 기반)
 /// let safeContext = LibHangul.createThreadSafeInputContext()
-/// await safeContext.process(key)
+/// let result = safeContext.process(key) // await 불필요
 /// ```
 public final class HangulInputContext {
 
@@ -213,9 +166,9 @@ public final class HangulInputContext {
     /// Result 타입을 사용한 키 입력 처리 (내부 메서드)
     /// - Parameter key: ASCII 키 코드
     /// - Returns: 처리 결과
-    private func processKey(_ key: Int) -> Result<Bool, HangulInputError> {
+    private func processKey(_ key: Int) -> Result<Bool, HangulError> {
         guard let keyboard = keyboard else {
-            return .failure(.keyboardNotFound(identifier: "nil"))
+            return .failure(.keyboardNotFound("nil"))
         }
 
         // 키 코드 유효성 검증 (음수 방지)
@@ -289,10 +242,10 @@ public final class HangulInputContext {
             let result = try processJamoWithValidation(jamo)
             updatePreeditString()
             return .success(result)
-        } catch let error as HangulInputError {
+        } catch let error as HangulError {
             return .failure(error)
         } catch {
-            return .failure(.inconsistentBufferState(reason: error.localizedDescription))
+            return .failure(.inconsistentState(error.localizedDescription))
         }
     }
 
@@ -300,7 +253,7 @@ public final class HangulInputContext {
     private func processJamoWithValidation(_ jamo: UCSChar) throws -> Bool {
         // 입력 자모 유효성 검증
         guard validateJamo(jamo) else {
-            throw HangulInputError.invalidJamo(jamo)
+            throw HangulError.invalidJamoCode(jamo)
         }
 
         // 버퍼가 가득 찼는지 확인
@@ -314,10 +267,9 @@ public final class HangulInputContext {
             }
         }
 
-        // 입력 전 버퍼 상태 저장 (완성된 음절 감지용)
-        let beforePush = buffer.buildSyllable()
+        // 입력 전 버퍼 상태는 아래 로직에서 직접 확인함
         
-        var processedJamo = jamo
+        let processedJamo = jamo
         
         // Removed hardcoded 'Idiomatic Input' (0x1102 check)
         // Standardizing behavior: rely on pushChoseong logic to handle transitions.
@@ -395,7 +347,7 @@ public final class HangulInputContext {
                 return true
             } else {
                 // 재시도도 실패하면 오류
-                throw HangulInputError.inconsistentBufferState(reason: "Push retry failed after flush")
+                throw HangulError.inconsistentState("Push retry failed after flush")
             }
         }
     }
@@ -467,8 +419,6 @@ public final class HangulInputContext {
     /// 디버그용: 버퍼 상태 확인
     /// - Returns: 버퍼의 초성, 중성, 종성 값
     internal func debugBufferState() -> (choseong: UCSChar, jungseong: UCSChar, jongseong: UCSChar) {
-        print("debugBufferState: buffer address = \(Unmanaged.passUnretained(buffer).toOpaque())")
-        print("debugBufferState: choseong = 0x\(String(format: "%04X", buffer.choseong)), jungseong = 0x\(String(format: "%04X", buffer.jungseong)), jongseong = 0x\(String(format: "%04X", buffer.jongseong))")
         return (buffer.choseong, buffer.jungseong, buffer.jongseong)
     }
 
@@ -575,18 +525,18 @@ public final class HangulInputContext {
     }
 
     /// 안전한 버퍼 플러시 (Result 타입 반환)
-    private func safeFlush() -> Result<[UCSChar], HangulInputError> {
+    private func safeFlush() -> Result<[UCSChar], HangulError> {
         do {
             let result = try flushWithValidation()
             return .success(normalizeUnicode(result))
-        } catch let error as HangulInputError {
+        } catch let error as HangulError {
             // 오류 복구 시도
             recoverFromError()
             return .failure(error)
         } catch {
             // 예상치 못한 오류
             recoverFromError()
-            return .failure(.inconsistentBufferState(reason: error.localizedDescription))
+            return .failure(.inconsistentState(error.localizedDescription))
         }
     }
 
@@ -650,13 +600,13 @@ public final class HangulInputContext {
 
         // 버퍼 크기 검증
         guard jamoString.count <= maxBufferSize else {
-            throw HangulInputError.bufferOverflow(maxSize: maxBufferSize)
+            throw HangulError.bufferOverflow(maxBufferSize)
         }
 
         // 자모 유효성 검증
         for jamo in jamoString {
             guard validateJamo(jamo) else {
-                throw HangulInputError.invalidJamo(jamo)
+                throw HangulError.invalidJamoCode(jamo)
             }
         }
 
@@ -664,7 +614,7 @@ public final class HangulInputContext {
         if jamoString.count > 0 && jamoString.count <= 3 {
             // 유효한 조합 상태로 간주
         } else if jamoString.count > 3 {
-            throw HangulInputError.bufferOverflow(maxSize: maxBufferSize)
+            throw HangulError.bufferOverflow(maxBufferSize)
         }
     }
 
@@ -682,15 +632,7 @@ public final class HangulInputContext {
     }
 
     /// 에러 처리 헬퍼 메서드
-    private func handleError(_ error: HangulInputError, for key: Int) {
-        // 로그 기록
-        print("HangulInputContext 에러: \(error.errorDescription ?? "알 수 없는 오류")")
-
-        // 복구 제안이 있으면 로그에 기록
-        if let suggestion = error.recoverySuggestion {
-            print("복구 제안: \(suggestion)")
-        }
-
+    private func handleError(_ error: HangulError, for key: Int) {
         // 오류 복구
         recoverFromError()
 

@@ -16,40 +16,40 @@ import Foundation
 /// 이 클래스는 내부 구현용이며, 스레드 안전하지 않습니다.
 /// 외부에서 직접 사용하지 마세요. `HangulInputContext` 또는
 /// `ThreadSafeHangulInputContext`를 통해 접근하세요.
-public final class HangulBuffer {
+internal final class HangulBuffer {
     /// 초성
-    public private(set) var choseong: UCSChar = 0
+    internal private(set) var choseong: UCSChar = 0
 
     /// 중성
-    public private(set) var jungseong: UCSChar = 0
+    internal private(set) var jungseong: UCSChar = 0
 
     /// 종성
-    public private(set) var jongseong: UCSChar = 0
+    internal private(set) var jongseong: UCSChar = 0
     
     /// 종성이 결합되어 확장되었는지 여부 (ㄱ+ㄱ=ㄲ 등)
     /// 음절 분리 시 확장된 종성은 분해되고, 원래 단일 입력은 전체 이동
-    public private(set) var jongseongWasExtended: Bool = false
+    internal private(set) var jongseongWasExtended: Bool = false
 
     /// 자모 스택 (Unused in single-syllable buffer design, kept for API compatibility if needed, but removing logic)
     // private var stack: [UCSChar] = [] // Removed
     private let maxStackSize: Int
 
     /// 최대 스택 크기
-    public var maxStackSizeValue: Int {
+    internal var maxStackSizeValue: Int {
         maxStackSize
     }
 
-    public init(maxStackSize: Int = 12) {
+    internal init(maxStackSize: Int = 12) {
         self.maxStackSize = maxStackSize
     }
 
     /// 버퍼가 비어있는지 확인
-    public var isEmpty: Bool {
+    internal var isEmpty: Bool {
         choseong == 0 && jungseong == 0 && jongseong == 0
     }
 
     /// 버퍼를 초기화
-    public func clear() {
+    internal func clear() {
         choseong = 0
         jungseong = 0
         jongseong = 0
@@ -67,7 +67,7 @@ public final class HangulBuffer {
     /// 자모를 버퍼에 추가
     /// - Parameter jamo: 추가할 자모
     /// - Returns: 성공 여부
-    public func push(_ jamo: UCSChar) -> Bool {
+    internal func push(_ jamo: UCSChar) -> Bool {
         guard HangulCharacter.isJamo(jamo) else { return false }
 
         if HangulCharacter.isChoseong(jamo) {
@@ -83,7 +83,7 @@ public final class HangulBuffer {
 
     /// 마지막 자모를 제거하고 반환
     /// - Returns: 제거된 자모, 없으면 0
-    public func pop() -> UCSChar {
+    internal func pop() -> UCSChar {
         // 스택 제거됨, 오직 현재 음절 내에서만 pop
 
         if jongseong != 0 {
@@ -119,7 +119,7 @@ public final class HangulBuffer {
 
     /// 버퍼의 내용을 음절로 변환
     /// - Returns: 변환된 음절, 실패시 0
-    public func buildSyllable() -> UCSChar {
+    internal func buildSyllable() -> UCSChar {
         guard choseong != 0 || jungseong != 0 || jongseong != 0 else { return 0 }
 
         return HangulCharacter.jamoToSyllable(
@@ -131,7 +131,7 @@ public final class HangulBuffer {
 
     /// 버퍼의 내용을 자모 배열로 반환
     /// - Returns: 자모 배열
-    public func getJamoString() -> [UCSChar] {
+    internal func getJamoString() -> [UCSChar] {
         var result: [UCSChar] = []
 
         if choseong != 0 {

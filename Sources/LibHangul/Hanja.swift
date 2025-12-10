@@ -115,23 +115,36 @@ public final class HanjaTable {
     public init() {}
 
     /// 한자 사전 파일을 로드
-    /// - Parameter filename: 사전 파일 경로, nil이면 기본 사전 사용
+    /// - Parameter filename: 사전 파일 경로, nil이면 여러 경로 검색
     /// - Returns: 성공 여부
     public func load(filename: String? = nil) -> Bool {
-        let filePath: String
-
+        var content: String?
+        
         if let filename = filename {
-            filePath = filename
+            // 명시적 파일 경로가 제공된 경우
+            content = try? String(contentsOfFile: filename, encoding: .utf8)
         } else {
-            // 기본 한자 사전 파일 경로
-            filePath = "data/hanja/hanja.txt"
+            // 여러 경로에서 한자 사전 검색
+            let searchPaths = [
+                "data/hanja/hanja.txt",
+                "./hanja.txt",
+                Bundle.main.bundlePath + "/Contents/Resources/hanja.txt",
+                Bundle.main.bundlePath + "/Contents/Resources/data/hanja/hanja.txt"
+            ]
+            
+            for path in searchPaths {
+                if FileManager.default.fileExists(atPath: path) {
+                    content = try? String(contentsOfFile: path, encoding: .utf8)
+                    if content != nil { break }
+                }
+            }
         }
-
-        guard let content = try? String(contentsOfFile: filePath, encoding: .utf8) else {
+        
+        guard let dictionaryContent = content else {
             return false
         }
 
-        return parseDictionary(content)
+        return parseDictionary(dictionaryContent)
     }
 
     /// 정확한 키 매칭으로 한자 검색

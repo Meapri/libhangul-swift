@@ -143,60 +143,66 @@ public final class HangulKeyboard3Set: HangulKeyboard {
         setup3SetMappings()
     }
 
-    /// 세벌식 자판 매핑 설정
+    /// 세벌식 390 자판 매핑 설정
+    /// 참고: https://ko.wikipedia.org/wiki/세벌식_390_자판
     private func setup3SetMappings() {
-        // 세벌식 자판 매핑 (간략 버전)
-        // 실제 세벌식 구현은 더 복잡하지만 여기서는 기본적인 매핑만 구현
+        // 세벌식 390 자판 매핑
+        // 초성, 중성, 종성이 각각 다른 키에 배치됨
 
-        // 초성 위치
+        // 초성 위치 (오른쪽 영역)
         keyMap[Int(Character("k").asciiValue!)] = 0x1100  // ㄱ
-        keyMap[Int(Character("h").asciiValue!)] = 0x1101  // ㄲ
-        keyMap[Int(Character("u").asciiValue!)] = 0x1102  // ㄷ
-        keyMap[Int(Character("y").asciiValue!)] = 0x1103  // ㄹ
-        keyMap[Int(Character("i").asciiValue!)] = 0x1105  // ㅁ
-        keyMap[Int(Character("n").asciiValue!)] = 0x1106  // ㅂ
-        keyMap[Int(Character("j").asciiValue!)] = 0x1107  // ㅃ
-        keyMap[Int(Character("l").asciiValue!)] = 0x1109  // ㅅ
-        keyMap[Int(Character(";").asciiValue!)] = 0x110A  // ㅆ
-        keyMap[Int(Character("o").asciiValue!)] = 0x110B  // ㅇ
-        keyMap[Int(Character("0").asciiValue!)] = 0x110C  // ㅈ
-        keyMap[Int(Character("p").asciiValue!)] = 0x110E  // ㅊ
-        keyMap[Int(Character("m").asciiValue!)] = 0x110F  // ㅋ
-        keyMap[Int(Character(",").asciiValue!)] = 0x1110  // ㅌ
-        keyMap[Int(Character(".").asciiValue!)] = 0x1111  // ㅍ
-        keyMap[Int(Character("/").asciiValue!)] = 0x1112  // ㅎ
+        keyMap[Int(Character("K").asciiValue!)] = 0x1101  // ㄲ
+        keyMap[Int(Character("h").asciiValue!)] = 0x1102  // ㄴ
+        keyMap[Int(Character("u").asciiValue!)] = 0x1103  // ㄷ
+        keyMap[Int(Character("U").asciiValue!)] = 0x1104  // ㄸ
+        keyMap[Int(Character("y").asciiValue!)] = 0x1105  // ㄹ
+        keyMap[Int(Character("i").asciiValue!)] = 0x1106  // ㅁ
+        keyMap[Int(Character("n").asciiValue!)] = 0x1107  // ㅂ
+        keyMap[Int(Character("N").asciiValue!)] = 0x1108  // ㅃ
+        keyMap[Int(Character("j").asciiValue!)] = 0x1109  // ㅅ
+        keyMap[Int(Character("J").asciiValue!)] = 0x110A  // ㅆ
+        keyMap[Int(Character("l").asciiValue!)] = 0x110B  // ㅇ
+        keyMap[Int(Character("o").asciiValue!)] = 0x110C  // ㅈ
+        keyMap[Int(Character("O").asciiValue!)] = 0x110D  // ㅉ
+        keyMap[Int(Character("0").asciiValue!)] = 0x110E  // ㅊ
+        keyMap[Int(Character("'").asciiValue!)] = 0x110F  // ㅋ
+        keyMap[Int(Character("p").asciiValue!)] = 0x1110  // ㅌ
+        keyMap[Int(Character(";").asciiValue!)] = 0x1111  // ㅍ
+        keyMap[Int(Character("m").asciiValue!)] = 0x1112  // ㅎ
 
-        // 중성 위치
-        // 'f' 키는 초성(ㅁ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
-        // 'r' 키는 초성(ㄱ)으로 이미 매핑되어 있으므로 중성 매핑에서 제외
-        keyMap[Int(Character("k").asciiValue!)] = 0x1161  // ㅏ
-        keyMap[Int(Character("6").asciiValue!)] = 0x1163  // ㅑ
-        keyMap[Int(Character("c").asciiValue!)] = 0x1165  // ㅓ
-        keyMap[Int(Character("e").asciiValue!)] = 0x1166  // ㅔ
-        keyMap[Int(Character("7").asciiValue!)] = 0x1167  // ㅕ
+        // 중성 위치 (가운데 영역)
+        keyMap[Int(Character("f").asciiValue!)] = 0x1161  // ㅏ
+        keyMap[Int(Character("F").asciiValue!)] = 0x1162  // ㅐ
+        keyMap[Int(Character("r").asciiValue!)] = 0x1163  // ㅑ
+        keyMap[Int(Character("R").asciiValue!)] = 0x1164  // ㅒ
+        keyMap[Int(Character("6").asciiValue!)] = 0x1165  // ㅓ
+        keyMap[Int(Character("T").asciiValue!)] = 0x1166  // ㅔ
+        keyMap[Int(Character("c").asciiValue!)] = 0x1167  // ㅕ
+        keyMap[Int(Character("e").asciiValue!)] = 0x1168  // ㅖ
         keyMap[Int(Character("v").asciiValue!)] = 0x1169  // ㅗ
         keyMap[Int(Character("4").asciiValue!)] = 0x116D  // ㅛ
         keyMap[Int(Character("b").asciiValue!)] = 0x116E  // ㅜ
         keyMap[Int(Character("5").asciiValue!)] = 0x1172  // ㅠ
-        keyMap[Int(Character("t").asciiValue!)] = 0x1173  // ㅡ
-        keyMap[Int(Character("g").asciiValue!)] = 0x1175  // ㅣ
+        keyMap[Int(Character("g").asciiValue!)] = 0x1173  // ㅡ
+        keyMap[Int(Character("t").asciiValue!)] = 0x1175  // ㅣ
 
-        // 종성 위치
+        // 종성 위치 (왼쪽 영역)
         keyMap[Int(Character("d").asciiValue!)] = 0x11A8  // ㄱ
-        keyMap[Int(Character("s").asciiValue!)] = 0x11A9  // ㄲ
-        keyMap[Int(Character("w").asciiValue!)] = 0x11AB  // ㄷ
-        keyMap[Int(Character("3").asciiValue!)] = 0x11AE  // ㄹ
+        keyMap[Int(Character("D").asciiValue!)] = 0x11A9  // ㄲ
+        keyMap[Int(Character("s").asciiValue!)] = 0x11AB  // ㄴ
+        keyMap[Int(Character("w").asciiValue!)] = 0x11AE  // ㄷ
+        keyMap[Int(Character("3").asciiValue!)] = 0x11AF  // ㄹ
         keyMap[Int(Character("a").asciiValue!)] = 0x11B7  // ㅁ
         keyMap[Int(Character("z").asciiValue!)] = 0x11B8  // ㅂ
         keyMap[Int(Character("x").asciiValue!)] = 0x11BA  // ㅅ
-        keyMap[Int(Character("2").asciiValue!)] = 0x11BB  // ㅆ
+        keyMap[Int(Character("X").asciiValue!)] = 0x11BB  // ㅆ
         keyMap[Int(Character("q").asciiValue!)] = 0x11BC  // ㅇ
-        keyMap[Int(Character("1").asciiValue!)] = 0x11BD  // ㅈ
-        keyMap[Int(Character("9").asciiValue!)] = 0x11BE  // ㅊ
-        keyMap[Int(Character("8").asciiValue!)] = 0x11BF  // ㅋ
-        keyMap[Int(Character("-").asciiValue!)] = 0x11C0  // ㅌ
-        keyMap[Int(Character("=").asciiValue!)] = 0x11C1  // ㅍ
-        keyMap[Int(Character("]").asciiValue!)] = 0x11C2  // ㅎ
+        keyMap[Int(Character("2").asciiValue!)] = 0x11BD  // ㅈ
+        keyMap[Int(Character("1").asciiValue!)] = 0x11BE  // ㅊ
+        keyMap[Int(Character("W").asciiValue!)] = 0x11BF  // ㅋ
+        keyMap[Int(Character("S").asciiValue!)] = 0x11C0  // ㅌ
+        keyMap[Int(Character("A").asciiValue!)] = 0x11C1  // ㅍ
+        keyMap[Int(Character("Z").asciiValue!)] = 0x11C2  // ㅎ
     }
 
     public override func mapKey(_ key: Int) -> UCSChar {
