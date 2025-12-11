@@ -17,44 +17,41 @@
 
 ---
 
-## 💡 소개
+## 💡 소개 (Introduction)
 
-`libhangul-swift`는 Swift 6의 Strict Concurrency를 완벽히 지원하는 **프로덕션 레디** 한글 입력 라이브러리입니다.
+`libhangul-swift`는 Swift 6의 Strict Concurrency를 지원하는 **고성능 한글 입력 엔진 라이브러리**입니다.  
+C 언어 기반의 `libhangul` 로직을 현대적인 Swift 아키텍처로 재설계하여, 안정성과 유지보수성을 극대화했습니다.
 
-### ✨ 주요 기능
+### ✨ 기술적 특징 (Technical Features)
 
 | 기능 | 설명 |
 |------|------|
-| **🛡️ 스레드 안전** | NSLock 기반 `ThreadSafeHangulInputContext`로 동시성 환경 완벽 지원 |
-| **⌨️ 다중 키보드** | 두벌식, 세벌식 390, 옛한글 레이아웃 지원 |
-| **🔤 정확한 조합** | 초성+중성+종성 자동 결합, 복합 자모 처리 |
-| **⬅️ 스마트 백스페이스** | 자소 단위 분해 (갋→갈→가→ㄱ) |
-| **📝 유니코드 정규화** | NFC/NFD 자동 변환, 파일명 호환 모드 |
-| **📊 OSLog 로깅** | Instruments 통합 디버깅 지원 |
+| **🚀 Trie 기반 한자 엔진** | 기존 해시맵 방식의 한계를 극복하기 위해 **Prefix Tree (Trie)** 자료구조를 자체 구현했습니다. 접두어 검색(`matchPrefix`)에서 O(m) 성능을 보장합니다. |
+| **💾 Streaming Load** | 대용량 한자 사전 로딩 시 `Swift.String.enumerateLines`를 활용한 스트리밍 파싱을 적용하여 초기 메모리 할당(Allocations)을 최소화했습니다. |
+| **🛡️ Thread Safety** | `ThreadSafeHangulInputContext`는 내부적으로 Lock 기반 동기화를 제공하여, `InputMethodKit`과 같은 멀티스레드 환경에서도 안전하게 상태를 관리합니다. |
+| **🔤 유니코드 정규화** | NFC/NFD 자동 변환 및 파일명 호환 모드를 지원하여 macOS 파일 시스템과의 호환성을 보장합니다. |
+| **📊 Zero-overhead Logging** | `OSLog`를 사용하여 릴리즈 빌드에서 오버헤드가 거의 없는 로깅 시스템을 구축했습니다. |
 
 ---
 
-## 📦 설치
+## 📦 설치 (Installation)
 
 ### Swift Package Manager
 
 ```swift
 // Package.swift
 dependencies: [
-    .package(url: "https://github.com/Meapri/libhangul-swift.git", from: "3.0.0")
+    .package(url: "https://github.com/Meapri/libhangul-swift.git", branch: "main")
 ]
 ```
 
-### Xcode
-1. File → Add Package Dependencies
-2. URL 입력: `https://github.com/Meapri/libhangul-swift.git`
-3. 버전 선택: `3.0.0` 이상
-
 ---
 
-## 🚀 빠른 시작
+## 🚀 사용법 (Usage)
 
-### 기본 사용법
+### 기본 사용 (Thread-Safe Context)
+
+멀티스레드 환경(대부분의 앱)에서는 반드시 `ThreadSafeHangulInputContext`를 사용해야 합니다.
 
 ```swift
 import LibHangul
@@ -63,17 +60,17 @@ import LibHangul
 let context = LibHangul.createThreadSafeInputContext()
 
 // 2. 키 입력 처리 (동기)
-_ = context.process(Int(Character("g").asciiValue!)) // ㅎ
-_ = context.process(Int(Character("k").asciiValue!)) // ㅏ
-_ = context.process(Int(Character("s").asciiValue!)) // ㄴ
+// 'ㄱ' -> 'ㅏ' -> 'ㄴ' 입력
+_ = context.process(Int(Character("r").asciiValue!)) 
+_ = context.process(Int(Character("k").asciiValue!))
+_ = context.process(Int(Character("s").asciiValue!))
 
 // 3. 현재 조합 상태 확인
 let preedit = context.getPreeditString()
-// preedit: [0xD55C] = "한"
+// preedit: "한" [0xD55C]
 
-// 4. 입력 확정
+// 4. 입력 확정 (Flush)
 let committed = context.flush()
-// committed: [0xD55C] = "한"
 ```
 
 ### 문자열 변환
