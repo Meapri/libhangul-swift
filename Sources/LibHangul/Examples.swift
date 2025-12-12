@@ -2,8 +2,6 @@
 //  Examples.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
 //  LibHangul 사용 예제 모음
 //
 

@@ -520,19 +520,19 @@ public final class HangulInputContext {
             return text
         }
 
-        // Fast path: 순수 한글(이미 정규화됨) 여부 확인
-        // 한글 완성형(U+AC00-U+D7A3) 및 호환 자모(U+3131-U+318E)는 이미 NFC 정규화 상태임
-        // 조합용 자모(U+1100-U+11FF)만 있을 때도 이미 정규화된 상태
-        // ASCII(0x00-0x7F)도 정규화 불필요
-        let allNormalized = text.allSatisfy { char in
+        // Fast path: 이미 NFC 정규화된 문자만 있는지 확인
+        // - ASCII(0x00-0x7F): 정규화 불필요
+        // - 완성형 한글(U+AC00-U+D7A3): 이미 NFC
+        // - 호환 자모(U+3131-U+318E): 이미 NFC
+        // ⚠️ 조합용 자모(U+1100-U+11FF)는 제외: 연속 시 NFC 결합 필요
+        let isSafeToSkip = text.allSatisfy { char in
             let isASCII = char <= 0x7F
             let isHangulSyllable = (0xAC00...0xD7A3).contains(char)
             let isCompatJamo = (0x3131...0x318E).contains(char)
-            let isComposingJamo = (0x1100...0x11FF).contains(char)
-            return isASCII || isHangulSyllable || isCompatJamo || isComposingJamo
+            return isASCII || isHangulSyllable || isCompatJamo
         }
         
-        if allNormalized {
+        if isSafeToSkip {
             return text  // Skip expensive String conversion
         }
 

@@ -2,8 +2,6 @@
 //  HangulCharacter.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
 //  한글 자모 관련 타입과 기본 연산을 정의하는 모듈
 //
 

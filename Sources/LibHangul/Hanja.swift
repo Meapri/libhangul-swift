@@ -2,8 +2,6 @@
 //  Hanja.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
 //  한자 사전 검색 기능
 //
 

@@ -2,8 +2,6 @@
 //  HangulKeyboard.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
 //  한글 키보드 레이아웃 관리
 //
 
