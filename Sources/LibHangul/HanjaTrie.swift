@@ -7,35 +7,51 @@
 
 import Foundation
 
-/// Trie Node structure using Sorted Arrays
+/// 자식 노드 엔트리 (단일 배열을 위한 구조체)
+/// 두 개의 배열 대신 하나의 구조체 배열로 힙 할당 횟수 절반으로 감소
+@usableFromInline
+struct TrieChildEntry: Comparable {
+    @usableFromInline let key: Character
+    @usableFromInline let index: Int
+    
+    @usableFromInline
+    init(key: Character, index: Int) {
+        self.key = key
+        self.index = index
+    }
+    
+    @inlinable
+    static func < (lhs: TrieChildEntry, rhs: TrieChildEntry) -> Bool {
+        lhs.key < rhs.key
+    }
+}
+
+/// Trie Node structure using Single Sorted Array
 /// 
 /// **최적화 설명**:
-/// Dictionary 대신 정렬된 배열 + 이진 탐색을 사용하여:
-/// - 해싱 오버헤드 제거
-/// - 더 나은 캐시 지역성 (연속 메모리)
-/// - CoW 복사 비용 감소
+/// - `childKeys`와 `childIndices` 두 배열을 `children: [TrieChildEntry]` 단일 배열로 통합
+/// - 노드당 2번의 힙 할당을 1번으로 감소
+/// - 더 나은 캐시 지역성 (key와 index가 인접)
 struct HanjaTrieNode {
     /// Hanja entries indices in the value storage
     var valueIndices: [Int] = []
     
-    /// 자식 노드 키 (정렬됨)
-    var childKeys: [Character] = []
-    /// 자식 노드 인덱스 (childKeys와 병렬)
-    var childIndices: [Int] = []
+    /// 자식 노드 (정렬됨) - 단일 배열로 힙 할당 최소화
+    var children: [TrieChildEntry] = []
     
     /// Binary search로 자식 찾기
     @inlinable
     func findChild(_ char: Character) -> Int? {
         var low = 0
-        var high = childKeys.count - 1
+        var high = children.count - 1
         
         while low <= high {
             let mid = (low + high) / 2
-            let midChar = childKeys[mid]
+            let midKey = children[mid].key
             
-            if midChar == char {
-                return childIndices[mid]
-            } else if midChar < char {
+            if midKey == char {
+                return children[mid].index
+            } else if midKey < char {
                 low = mid + 1
             } else {
                 high = mid - 1
@@ -46,34 +62,30 @@ struct HanjaTrieNode {
     
     /// 자식 추가 (정렬 유지)
     @inlinable
-    mutating func addChild(_ char: Character, index: Int) {
+    mutating func addChild(_ char: Character, nodeIndex: Int) {
         // 삽입 위치 찾기 (이진 탐색)
-        var insertIndex = 0
         var low = 0
-        var high = childKeys.count - 1
+        var high = children.count - 1
         
         while low <= high {
             let mid = (low + high) / 2
-            if childKeys[mid] < char {
+            if children[mid].key < char {
                 low = mid + 1
             } else {
                 high = mid - 1
             }
         }
-        insertIndex = low
         
-        childKeys.insert(char, at: insertIndex)
-        childIndices.insert(index, at: insertIndex)
+        children.insert(TrieChildEntry(key: char, index: nodeIndex), at: low)
     }
 }
 
 /// A specialized Trie data structure for storing and retrieving Hanja entries.
 ///
 /// **Optimization Note**:
-/// This implementation uses **Sorted Arrays + Binary Search** instead of Dictionary.
-/// - **No Hashing Overhead**: Direct comparison instead of hash computation.
-/// - **Better Cache Locality**: Contiguous memory layout.
-/// - **Reduced CoW Cost**: Smaller data structures copy faster.
+/// - **Sorted Array + Binary Search**: No hashing overhead.
+/// - **Single Child Array**: `TrieChildEntry` struct merges key/index into one array.
+/// - **Reduced Heap Allocations**: From 2N to N allocations per node.
 public final class HanjaTrie {
     /// Flat storage for all nodes. Index 0 is root.
     private var nodes: [HanjaTrieNode] = []
@@ -96,7 +108,7 @@ public final class HanjaTrie {
             } else {
                 let newNodeIndex = nodes.count
                 nodes.append(HanjaTrieNode())
-                nodes[currentNodeIndex].addChild(char, index: newNodeIndex)
+                nodes[currentNodeIndex].addChild(char, nodeIndex: newNodeIndex)
                 currentNodeIndex = newNodeIndex
             }
         }
@@ -155,6 +167,6 @@ public final class HanjaTrie {
     }
     
     public var isEmpty: Bool {
-        nodes[0].childKeys.isEmpty
+        nodes[0].children.isEmpty
     }
 }
