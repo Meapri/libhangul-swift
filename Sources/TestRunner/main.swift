@@ -167,7 +167,7 @@ class TestRunner {
     
     func processInput(_ keys: String) {
         for char in keys {
-            let _: Bool = inputContext.process(Int(char.asciiValue!))
+            let _: Bool = inputContext.process(char)
         }
     }
     
@@ -282,7 +282,7 @@ class TestRunner {
         reset()
         // 국 + ㄱ = 굮 -> BS -> 국
         processInput("rnr") // ㄱㅜㄱ
-        let _: Bool = inputContext.process(Int(Character("r").asciiValue!)) // + ㄱ -> 굮 (ㄲ jongseong)
+        let _: Bool = inputContext.process(Character("r")) // + ㄱ -> 굮 (ㄲ jongseong)
         
         _ = getPreeditString() // preedit 결과는 로직 확인용이나 별도 검증 불필요
         // Note: 굮 is rare, might display weirdly, but checking logic
@@ -474,7 +474,7 @@ class TestRunner {
         
         // Bug 4: ㅇ (d) key alone, then flush - should produce valid output
         reset()
-        let _: Bool = inputContext.process(Int(Character("d").asciiValue!)) // ㅇ
+        let _: Bool = inputContext.process(Character("d")) // ㅇ
         let preeditD = getPreeditString()
         print("DEBUG: ㅇ alone preedit: '\(preeditD)' (hex: \(preeditD.unicodeScalars.map { String(format: "%04X", $0.value) }))")
         
@@ -485,7 +485,7 @@ class TestRunner {
         
         // Bug 5: ㅁ (a) key alone, then flush
         reset()
-        let _: Bool = inputContext.process(Int(Character("a").asciiValue!)) // ㅁ
+        let _: Bool = inputContext.process(Character("a")) // ㅁ
         let preeditA = getPreeditString()
         print("DEBUG: ㅁ alone preedit: '\(preeditA)' (hex: \(preeditA.unicodeScalars.map { String(format: "%04X", $0.value) }))")
         
@@ -511,7 +511,7 @@ class TestRunner {
         var allPassed = true
         for key in choseongKeys {
             reset()
-            let _: Bool = inputContext.process(Int(Character(key).asciiValue!))
+            let _: Bool = inputContext.process(Character(key))
             let flushed = inputContext.flush()
             if flushed.isEmpty {
                 print("❌ FAILED: Key '\(key)' flush returned empty!")
@@ -552,7 +552,7 @@ class TestRunner {
             queue.async {
                 let keys = ["r", "k", "s", "k"] // 간단한 한글 입력
                 for key in keys {
-                    let _: Bool = context.process(Int(Character(key).asciiValue!))
+                    let _: Bool = context.process(Character(key))
                 }
                 _ = context.flush()
                 
@@ -579,8 +579,8 @@ class TestRunner {
         let queue = DispatchQueue(label: "test.flush", attributes: .concurrent)
         
         // 먼저 데이터 입력
-        let _: Bool = context.process(Int(Character("r").asciiValue!))
-        let _: Bool = context.process(Int(Character("k").asciiValue!))
+        let _: Bool = context.process(Character("r"))
+        let _: Bool = context.process(Character("k"))
         
         var flushCount = 0
         let lock = NSLock()
@@ -625,7 +625,7 @@ class TestRunner {
                     switch operation {
                     case 0:
                         let keys = ["r", "k", "s", "e", "f"]
-                        let _: Bool = context.process(Int(Character(keys.randomElement()!).asciiValue!))
+                        let _: Bool = context.process(keys.randomElement()!)
                     case 1:
                         _ = context.backspace()
                     case 2:

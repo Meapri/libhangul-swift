@@ -23,9 +23,7 @@ public enum LibHangulExamples {
 
         var result = ""
         for char in input {
-            let key = Int(char.asciiValue!)
-            // Explicitly call the Bool-returning version logic or cast
-            let isProcessed: Bool = context.process(key)
+            let isProcessed: Bool = context.process(char)
             if isProcessed {
                 let commit = context.getCommitString()
                 if !commit.isEmpty {
@@ -135,8 +133,7 @@ public enum LibHangulExamples {
         for (key, jamo) in inputSequence {
             print("  키 '\(key)' (자모: \(jamo))")
 
-            let keyCode = Int(Character(key).asciiValue!)
-            let processed: Bool = context.process(keyCode)
+            let processed: Bool = context.process(Character(key))
 
             if processed {
                 let commit = context.getCommitString()

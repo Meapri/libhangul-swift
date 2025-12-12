@@ -36,9 +36,8 @@ print("성능: Swift 버전이 더 빠르고 안전함")
 
 var result = ""
 for char in input {
-    let key = Int(char.asciiValue ?? 0)
-    print("  입력 '\(char)' (key: \(key), hex: 0x\(String(key, radix: 16)))")
-    if context.process(key) {
+    print("  입력 '\(char)' (hex: 0x\(String(char.asciiValue ?? 0, radix: 16)))")
+    if context.process(char) {
         // 각 키 입력 후 커밋된 텍스트를 가져옴
         let commit = context.getCommitString()
         if !commit.isEmpty {
@@ -96,8 +95,7 @@ let simpleContext = LibHangul.createInputContextLegacy(keyboard: "2")
 
 var simpleResult = ""
 for char in simpleInput {
-    let key = Int(char.asciiValue ?? 0)
-    if simpleContext.process(key) {
+    if simpleContext.process(char) {
         let commit = simpleContext.getCommitString()
         if !commit.isEmpty {
             let text = String(commit.compactMap { UnicodeScalar($0) }.map { Character($0) })

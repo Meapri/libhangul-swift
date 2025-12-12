@@ -75,22 +75,21 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
 
     // MARK: - Public Methods
 
-    /// 키 입력 처리 (Result 반환 버전)
-    /// - Parameter key: ASCII 키 코드
+    /// 키 입력 처리 (Primary API)
+    /// - Parameter input: 키 입력
     /// - Returns: 처리 결과 (성공 시 Bool, 실패 시 HangulError)
-    public func process(_ key: Int) -> Result<Bool, HangulError> {
+    public func process(_ input: KeyInput) -> Result<Bool, HangulError> {
         synchronized {
-            context.process(key)
+            context.process(input)
         }
     }
-
-    /// 키 입력 처리 (기존 Bool 반환 버전 - 하위 호환성)
-    /// - Parameter key: ASCII 키 코드
+    
+    /// 키 입력 처리 (편의 메서드 - Bool 반환)
+    /// - Parameter input: 키 입력
     /// - Returns: 키가 처리되었으면 true
     @discardableResult
-    public func process(_ key: Int) -> Bool {
-        let result: Result<Bool, HangulError> = process(key)
-        switch result {
+    public func processKey(_ input: KeyInput) -> Bool {
+        switch process(input) {
         case .success(let success):
             return success
         case .failure:
@@ -98,13 +97,12 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
         }
     }
     
-    /// 키 입력 처리 (Character 버전 - 사용자 친화적 API)
+    /// Character 입력 처리 (편의 메서드)
     /// - Parameter char: 입력 문자
     /// - Returns: 키가 처리되었으면 true
     @discardableResult
     public func process(_ char: Character) -> Bool {
-        guard let ascii = char.asciiValue else { return false }
-        return process(Int(ascii))
+        processKey(.character(char))
     }
 
     /// 백스페이스 처리
@@ -307,9 +305,8 @@ extension ThreadSafeHangulInputContext {
     /// - Returns: 처리 결과
     public func process(_ string: String) -> Bool {
         var success = false
-        for char in string.unicodeScalars {
-            let key = Int(char.value)
-            if process(key) {
+        for char in string {
+            if process(char) {
                 success = true
             }
         }
@@ -343,7 +340,8 @@ extension ThreadSafeHangulInputContext {
             var results: [HangulInputResult] = []
 
             for key in keys {
-                let processed: Bool = context.process(key)
+                guard let input = KeyInput.fromASCII(key) else { continue }
+                let processed: Bool = context.processKey(input)
                 let preedit = context.getPreeditString()
                 let committed = context.getCommitString()
 

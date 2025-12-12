@@ -20,6 +20,7 @@ public enum HangulError: LocalizedError, Sendable {
     case bufferOverflow(Int)
     case invalidJamoCode(UCSChar)
     case invalidKeyCode(Int)
+    case invalidInput(String)
     case keyboardNotFound(String)
     case unicodeConversionFailed(String)
     case memoryAllocationFailed
@@ -37,6 +38,8 @@ public enum HangulError: LocalizedError, Sendable {
             return "잘못된 자모 코드: 0x\(String(format: "%X", code))"
         case .invalidKeyCode(let keyCode):
             return "잘못된 키 코드: \(keyCode)"
+        case .invalidInput(let reason):
+            return "잘못된 입력: \(reason)"
         case .keyboardNotFound(let keyboardId):
             return "키보드를 찾을 수 없음: \(keyboardId)"
         case .unicodeConversionFailed(let reason):
@@ -62,6 +65,8 @@ public enum HangulError: LocalizedError, Sendable {
             return "올바른 한글 자모 코드를 사용하세요"
         case .invalidKeyCode:
             return "올바른 키 코드를 입력하세요"
+        case .invalidInput:
+            return "유효한 ASCII 문자를 입력하세요"
         case .keyboardNotFound:
             return "지원되는 키보드 ID를 확인하세요"
         case .unicodeConversionFailed:
@@ -619,8 +624,7 @@ extension HangulInputContext {
         var result = ""
 
         for char in text {
-            let key = Int(char.asciiValue ?? 0)
-            if process(key) {
+            if process(char) {
                 let commit = getCommitString()
                 if !commit.isEmpty {
                     let commitText = commit.compactMap { UnicodeScalar($0) }.map { Character($0) }

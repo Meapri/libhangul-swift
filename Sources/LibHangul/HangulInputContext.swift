@@ -153,27 +153,29 @@ public final class HangulInputContext {
 
     // MARK: - Public Methods
 
-    /// 키 입력 처리 (Result 반환 버전)
-    /// - Parameter key: ASCII 키 코드
+    /// 키 입력 처리 (Primary API)
+    /// - Parameter input: 키 입력
     /// - Returns: 처리 결과 (성공 시 Bool, 실패 시 HangulError)
-    public func process(_ key: Int) -> Result<Bool, HangulError> {
-        let result = processKey(key)
-        switch result {
-        case .success(let processed):
-            return .success(processed)
-        case .failure(let error):
-            handleError(error, for: key)
-            return .failure(error)
+    public func process(_ input: KeyInput) -> Result<Bool, HangulError> {
+        switch input {
+        case .character(let char):
+            guard let ascii = char.asciiValue else {
+                return .failure(.invalidInput("Non-ASCII character: \(char)"))
+            }
+            return processASCII(Int(ascii))
+        case .keyCode(let code):
+            return processASCII(Int(code))
+        case .backspace:
+            return .success(backspace())
         }
     }
-
-    /// 키 입력 처리 (기존 Bool 반환 버전 - 하위 호환성)
-    /// - Parameter key: ASCII 키 코드
+    
+    /// 키 입력 처리 (편의 메서드 - Bool 반환)
+    /// - Parameter input: 키 입력
     /// - Returns: 키가 처리되었으면 true
     @discardableResult
-    public func process(_ key: Int) -> Bool {
-        let result: Result<Bool, HangulError> = process(key)
-        switch result {
+    public func processKey(_ input: KeyInput) -> Bool {
+        switch process(input) {
         case .success(let success):
             return success
         case .failure:
@@ -181,19 +183,18 @@ public final class HangulInputContext {
         }
     }
     
-    /// 키 입력 처리 (Character 버전 - 사용자 친화적 API)
+    /// Character 입력 처리 (편의 메서드)
     /// - Parameter char: 입력 문자
     /// - Returns: 키가 처리되었으면 true
     @discardableResult
     public func process(_ char: Character) -> Bool {
-        guard let ascii = char.asciiValue else { return false }
-        return process(Int(ascii))
+        processKey(.character(char))
     }
 
-    /// Result 타입을 사용한 키 입력 처리 (내부 메서드)
+    /// ASCII 키 입력 처리 (내부 메서드)
     /// - Parameter key: ASCII 키 코드
     /// - Returns: 처리 결과
-    private func processKey(_ key: Int) -> Result<Bool, HangulError> {
+    private func processASCII(_ key: Int) -> Result<Bool, HangulError> {
         guard let keyboard = keyboard else {
             return .failure(.keyboardNotFound("nil"))
         }
@@ -452,30 +453,6 @@ public final class HangulInputContext {
         case .failure:
             return []
         }
-    }
-
-    /// 기존 flush 메서드 (하위 호환성)
-    @available(*, deprecated, message: "Use flush() instead")
-    public func legacyFlush() -> [UCSChar] {
-        var result = commitString
-
-        if !buffer.isEmpty {
-            if outputMode == .syllable {
-                let syllable = buffer.buildSyllable()
-                if syllable != 0 {
-                    result.append(syllable)
-                } else {
-                    result.append(contentsOf: buffer.getJamoString())
-                }
-            } else {
-                result.append(contentsOf: buffer.getJamoString())
-            }
-            buffer.clear()
-            preeditString.removeAll()
-        }
-
-        commitString = result
-        return normalizeUnicode(result)
     }
 
     /// 키보드 설정
@@ -803,9 +780,8 @@ extension HangulInputContext {
     /// - Returns: 처리 결과
     public func process(_ string: String) -> Bool {
         var success = false
-        for char in string.unicodeScalars {
-            let key = Int(char.value)
-            if process(key) {
+        for char in string {
+            if process(char) {
                 success = true
             }
         }
