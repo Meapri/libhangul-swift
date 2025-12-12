@@ -1,10 +1,9 @@
+
 //
 //  HangulInputContext.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
-//  한글 입력 컨텍스트 - 한글 입력 상태 관리
+//  한글 입력 상태 및 로직 관리
 //
 
 import Foundation

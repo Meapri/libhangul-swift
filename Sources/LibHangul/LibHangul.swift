@@ -2,8 +2,6 @@
 //  LibHangul.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
 //  libhangul Swift 라이브러리의 메인 모듈
 //
 
@@ -328,6 +326,10 @@ public enum LibHangul {
     // MARK: - Thread-Safe Input Context Creation (권장)
 
     /// 🛡️ Swift 6 동시성 안전한 한글 입력 컨텍스트 생성
+    /// 
+    /// 내부적으로 `HangulInputConfiguration.safe()`를 사용하여 초기화 실패 가능성이 없습니다.
+    /// 만약 설정 오류가 발생하면 기본값을 사용하여 안전하게 인스턴스를 반환합니다.
+    ///
     /// - Parameter keyboard: 키보드 식별자 (기본값: "2" 두벌식)
     /// - Returns: 스레드 안전한 입력 컨텍스트
     public static func createThreadSafeInputContext(keyboard: String = "2") -> ThreadSafeHangulInputContext {

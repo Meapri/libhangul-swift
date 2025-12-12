@@ -694,3 +694,7 @@ class TestRunner {
 let runner = TestRunner()
 runner.runAll()
 
+// Run Refinement Tests
+let refinementRunner = RefinementTestRunner()
+refinementRunner.run()
+

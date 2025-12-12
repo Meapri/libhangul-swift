@@ -2,8 +2,6 @@
 //  HangulBuffer.swift
 //  LibHangul
 //
-//  Created by Sonic AI Assistant
-//
 //  한글 입력 버퍼 관리
 //
 
@@ -30,8 +28,8 @@ internal final class HangulBuffer {
     /// 음절 분리 시 확장된 종성은 분해되고, 원래 단일 입력은 전체 이동
     internal private(set) var jongseongWasExtended: Bool = false
 
-    /// 자모 스택 (Unused in single-syllable buffer design, kept for API compatibility if needed, but removing logic)
-    // private var stack: [UCSChar] = [] // Removed
+    /// 자모 스택 (Unused in single-syllable buffer design)
+    // private var stack: [UCSChar] = []
     private let maxStackSize: Int
 
     /// 최대 스택 크기

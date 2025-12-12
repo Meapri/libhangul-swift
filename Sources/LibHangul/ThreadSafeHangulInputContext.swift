@@ -2,7 +2,7 @@
 //  ThreadSafeHangulInputContext.swift
 //  LibHangul
 //
-//  Swift 6 동시성 제한에 대응하는 스레드 안전한 한글 입력 컨텍스트 래퍼
+//  스레드 안전한 한글 입력 컨텍스트 래퍼
 //  Lock 기반으로 구현되어 동기적 호출 지원
 //
 
