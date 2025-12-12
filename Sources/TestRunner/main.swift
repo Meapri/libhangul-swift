@@ -36,8 +36,8 @@ class TestRunner {
         let expected = "가"
         
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -52,8 +52,8 @@ class TestRunner {
         let expected = "각"
         
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -69,8 +69,8 @@ class TestRunner {
         
         print("DEBUG: Starting Syllable Separation Test")
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
             _ = inputContext.getPreeditString()
             _ = inputContext.getCommitString() // WARNING: This consumes commit string!
             // We need to accumulate commit string for final result, but here we just print it
@@ -91,8 +91,8 @@ class TestRunner {
         var fullCommit = ""
         
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
             
             let currentCommit = inputContext.getCommitString()
             let currentCommitStr = String(currentCommit.compactMap { UnicodeScalar($0) }.map { Character($0) })
@@ -120,8 +120,8 @@ class TestRunner {
         let expected = "까"
         
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -137,8 +137,8 @@ class TestRunner {
         let expected = "와"
         
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -153,8 +153,8 @@ class TestRunner {
         let expected = "안"
         
         for key in inputs {
-            let charCode = Int(Character(key).asciiValue!)
-            let _: Bool = inputContext.process(charCode)
+            
+            let _ = inputContext.process(Character(key))
         }
         
         // Check buffer state implicitly via string

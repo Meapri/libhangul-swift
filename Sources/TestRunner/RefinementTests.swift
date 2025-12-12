@@ -26,9 +26,7 @@ class RefinementTestRunner {
             
             // Validate: Should not crash
             for char in fuzzInput {
-                if let ascii = char.asciiValue {
-                    let _: Bool = context.process(Int(ascii))
-                }
+                let _ = context.process(char)
             }
             
             _ = context.flush()
@@ -53,9 +51,7 @@ class RefinementTestRunner {
                       if op < 6 {
                           // Input
                           let char = "rkskekfkabcdefg".randomElement()!
-                          if let ascii = char.asciiValue {
-                              let _: Bool = context.process(Int(ascii))
-                          }
+                          let _ = context.process(char)
                       } else if op < 8 {
                           // Backspace
                           let _ = context.backspace()

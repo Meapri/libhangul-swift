@@ -207,12 +207,6 @@ public final class HangulInputContext {
         // 키 매핑
         let jamo = keyboard.mapKey(key)
 
-        // 백스페이스 처리
-        if key == 8 || key == 0x7F { // Backspace or Delete
-            let result = backspace()
-            return .success(result)
-        }
-
         if jamo == 0 {
             // NULL 문자는 유효하지 않은 입력으로 처리
             if key == 0 {
@@ -222,7 +216,7 @@ public final class HangulInputContext {
             // 제어 문자 및 특수 키 처리 - 시스템에서 처리하도록 반환
             // - ASCII 제어 문자 (0-31, 127)
             // - macOS 기능 키 (0xF700-0xF8FF: 방향키, F1-F12, Home, End 등)
-            // - 백스페이스(8)와 Delete(127)는 위에서 이미 처리됨
+            // Note: 백스페이스는 process(KeyInput)에서 .backspace case로 처리됨
             let isControlChar = key < 32 || key == 127
             let isFunctionKey = key >= 0xF700 && key <= 0xF8FF
             
