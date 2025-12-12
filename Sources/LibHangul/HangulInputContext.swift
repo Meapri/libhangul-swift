@@ -275,6 +275,29 @@ public final class HangulInputContext {
         }
 
         // 버퍼가 가득 찼는지 확인
+        try handleBufferOverflowIfNeeded()
+
+        // 음절 분리 확인 (Jongseong + Jungseong -> Next Syllable)
+        if HangulCharacter.isJungseong(jamo) && buffer.jongseong != 0 {
+            handleSyllableSplit(jongseong: buffer.jongseong, wasExtended: buffer.jongseongWasExtended)
+        }
+
+        // 자모를 버퍼에 추가
+        let success = buffer.push(jamo)
+        if success {
+            updatePreeditString()
+            manageArrayCapacity()
+            return true
+        } else {
+            // 추가 실패 (결합 불가 등): 현재 버퍼를 커밋하고 새로 시작
+            return try commitAndPushNewJamo(jamo)
+        }
+    }
+    
+    // MARK: - Private Helper Methods (Extracted for Testability)
+    
+    /// 버퍼 오버플로우 시 현재 내용을 커밋
+    private func handleBufferOverflowIfNeeded() throws {
         if buffer.getJamoString().count >= maxBufferSize {
             let flushResult = safeFlush()
             switch flushResult {
@@ -284,89 +307,59 @@ public final class HangulInputContext {
                 throw error
             }
         }
-
-        // 입력 전 버퍼 상태는 아래 로직에서 직접 확인함
-        
-        let processedJamo = jamo
-        
-        // Removed hardcoded 'Idiomatic Input' (0x1102 check)
-        // Standardizing behavior: rely on pushChoseong logic to handle transitions.
-
-
-        // [New Logic] 음절 분리 확인 (Jongseong + Jungseong -> Next Syllable)
-        if HangulCharacter.isJungseong(processedJamo) && buffer.jongseong != 0 {
-            let currentJongseong = buffer.jongseong
-            let wasExtended = buffer.jongseongWasExtended
+    }
+    
+    /// 종성이 있는 상태에서 중성 입력 시 음절 분리 처리
+    /// - Parameters:
+    ///   - jongseong: 현재 버퍼의 종성
+    ///   - wasExtended: 종성이 결합으로 확장되었는지 여부
+    private func handleSyllableSplit(jongseong: UCSChar, wasExtended: Bool) {
+        if wasExtended {
+            // 종성이 결합으로 확장됨 (ㄱ+ㄱ=ㄲ, ㄱ+ㅅ=ㄳ 등)
+            // 분해하여 뒷부분만 다음 음절로 이동
+            let (first, second) = HangulCharacter.decomposeJongseong(jongseong)
             
-            if wasExtended {
-                // 종성이 결합으로 확장됨 (ㄱ+ㄱ=ㄲ, ㄱ+ㅅ=ㄳ 등)
-                // 분해하여 뒷부분만 다음 음절로 이동
-                let (first, second) = HangulCharacter.decomposeJongseong(currentJongseong)
-                
-                if second != 0 {
-                    let nextChoseong = HangulCharacter.jongseongToChoseong(second)
-                    if nextChoseong != 0 {
-                        // 앞부분만 남김
-                        buffer.setJongseong(first, wasExtended: false)
-                        
-                        // 현재 음절 커밋
-                        let flushResult = safeFlush()
-                        if case .success(let flushed) = flushResult {
-                            commitString.append(contentsOf: flushed)
-                        }
-                        
-                        // 다음 음절 시작
-                        let _ = buffer.push(nextChoseong)
-                        updatePreeditString()
-                    }
+            if second != 0 {
+                let nextChoseong = HangulCharacter.jongseongToChoseong(second)
+                if nextChoseong != 0 {
+                    buffer.setJongseong(first, wasExtended: false)
+                    commitCurrentSyllableAndStartNew(with: nextChoseong)
                 }
-            } else {
-                // 종성이 단일 입력됨 (ㄱ, ㄲ, ㄴ 등 - 확장 없이 직접 입력)
-                // 종성 전체를 다음 음절의 초성으로 이동
-                let wholeAsChoseong = HangulCharacter.jongseongToChoseong(currentJongseong)
-                
-                if wholeAsChoseong != 0 {
-                    // 버퍼에서 종성 완전히 제거
-                    buffer.setJongseong(0)
-                    
-                    // 현재 음절 커밋
-                    let flushResult = safeFlush()
-                    if case .success(let flushed) = flushResult {
-                        commitString.append(contentsOf: flushed)
-                    }
-                    
-                    // 다음 음절 시작
-                    let _ = buffer.push(wholeAsChoseong)
-                    updatePreeditString()
-                }
+            }
+        } else {
+            // 종성이 단일 입력됨 - 전체를 다음 음절의 초성으로 이동
+            let wholeAsChoseong = HangulCharacter.jongseongToChoseong(jongseong)
+            
+            if wholeAsChoseong != 0 {
+                buffer.setJongseong(0)
+                commitCurrentSyllableAndStartNew(with: wholeAsChoseong)
             }
         }
-
-        // 자모를 버퍼에 추가
-        let success = buffer.push(processedJamo)
-        if success {
+    }
+    
+    /// 현재 음절을 커밋하고 새 초성으로 다음 음절 시작
+    private func commitCurrentSyllableAndStartNew(with choseong: UCSChar) {
+        let flushResult = safeFlush()
+        if case .success(let flushed) = flushResult {
+            commitString.append(contentsOf: flushed)
+        }
+        let _ = buffer.push(choseong)
+        updatePreeditString()
+    }
+    
+    /// 버퍼에 추가 실패 시 현재 내용 커밋 후 재시도
+    private func commitAndPushNewJamo(_ jamo: UCSChar) throws -> Bool {
+        let flushResult = safeFlush()
+        if case .success(let flushed) = flushResult {
+            commitString.append(contentsOf: flushed)
+        }
+        
+        let retrySuccess = buffer.push(jamo)
+        if retrySuccess {
             updatePreeditString()
-
-            // 배열 용량 관리
-            manageArrayCapacity()
-
             return true
         } else {
-            // 추가 실패 (결합 불가 등): 현재 버퍼를 커밋하고 새로 시작
-            let flushResult = safeFlush()
-            if case .success(let flushed) = flushResult {
-                commitString.append(contentsOf: flushed)
-            }
-            
-            // 다시 시도
-            let retrySuccess = buffer.push(processedJamo)
-            if retrySuccess {
-                updatePreeditString()
-                return true
-            } else {
-                // 재시도도 실패하면 오류
-                throw HangulError.inconsistentState("Push retry failed after flush")
-            }
+            throw HangulError.inconsistentState("Push retry failed after flush")
         }
     }
 
@@ -519,8 +512,6 @@ public final class HangulInputContext {
     }
 
     /// 유니코드 정규화된 문자열 반환
-    /// - Parameter text: 정규화할 텍스트
-    /// - Returns: NFC 정규화된 문자열
     /// 유니코드 정규화된 문자열 반환 (성능 최적화됨)
     /// - Parameter text: 정규화할 텍스트
     /// - Returns: NFC 정규화된 문자열
@@ -529,16 +520,23 @@ public final class HangulInputContext {
             return text
         }
 
-        // Fast path: ASCII만 있는 경우 (정규화 불필요)
-        // 0xAC00(가) 미만이고 특수 결합 자모가 없으면 대부분 정규화 불필요
-        // 하지만 안전을 위해 한글 범위만 체크
-        let needsNormalization = text.contains { $0 >= 0x1100 }
-        if !needsNormalization {
-             return text
+        // Fast path: 순수 한글(이미 정규화됨) 여부 확인
+        // 한글 완성형(U+AC00-U+D7A3) 및 호환 자모(U+3131-U+318E)는 이미 NFC 정규화 상태임
+        // 조합용 자모(U+1100-U+11FF)만 있을 때도 이미 정규화된 상태
+        // ASCII(0x00-0x7F)도 정규화 불필요
+        let allNormalized = text.allSatisfy { char in
+            let isASCII = char <= 0x7F
+            let isHangulSyllable = (0xAC00...0xD7A3).contains(char)
+            let isCompatJamo = (0x3131...0x318E).contains(char)
+            let isComposingJamo = (0x1100...0x11FF).contains(char)
+            return isASCII || isHangulSyllable || isCompatJamo || isComposingJamo
+        }
+        
+        if allNormalized {
+            return text  // Skip expensive String conversion
         }
 
-        // [UCSChar] -> String 변환 최적화
-        // compactMap + map 대신, UnicodeScalar 뷰를 직접 생성하여 String 초기화
+        // Slow path: String 변환이 필요한 경우 (혼합 입력)
         let scalarView = text.lazy.compactMap { UnicodeScalar($0) }
         var string = ""
         string.unicodeScalars.append(contentsOf: scalarView)
@@ -546,7 +544,7 @@ public final class HangulInputContext {
         // 정규화 (NFC)
         let normalized = string.precomposedStringWithCanonicalMapping
         
-        // String -> [UCSChar] 변환 최적화
+        // String -> [UCSChar] 변환
         return normalized.unicodeScalars.map { UCSChar($0.value) }
     }
 

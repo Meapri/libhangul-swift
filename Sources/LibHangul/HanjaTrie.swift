@@ -29,15 +29,7 @@ public final class HanjaTrie {
     /// Flat storage for all nodes. Index 0 is root.
     private var nodes: [HanjaTrieNode] = []
     
-    /// Flat storage for all Hanja values to reduce duplication and reference counting updates in nodes
-    /// (Actually Hanja is a struct/class? Assuming struct or lightweight ref).
-    /// But wait, user code passes `Hanja`. Let's store `Hanja` objects directly in nodes for simplicity first,
-    /// or optimize further if needed. "valueIndices" above suggests indirect.
-    /// Let's stick to storing `[Hanja]` in nodes for now to keep logic simple, 
-    /// but since `HanjaTrieNode` is a struct, copying it might be heavy if array is large.
-    /// However, `valueIndices` is better if we have a central value store.
-    /// Let's use a central value store `allHanjaValues` and nodes store indices.
-    
+    /// Centralized storage for all Hanja values (nodes store indices only)
     private var allHanjaValues: [Hanja] = []
     
     /// The root node is always at index 0.
