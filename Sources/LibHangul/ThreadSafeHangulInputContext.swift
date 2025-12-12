@@ -96,6 +96,15 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
             return false
         }
     }
+    
+    /// 키 입력 처리 (Character 버전 - 사용자 친화적 API)
+    /// - Parameter char: 입력 문자
+    /// - Returns: 키가 처리되었으면 true
+    @discardableResult
+    public func process(_ char: Character) -> Bool {
+        guard let ascii = char.asciiValue else { return false }
+        return process(Int(ascii))
+    }
 
     /// 백스페이스 처리
     /// - Returns: 처리되었으면 true

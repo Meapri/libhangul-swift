@@ -1,0 +1,28 @@
+name: Swift CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v2
+      with:
+        swift-version: "6.0"
+    
+    - name: Build
+      run: swift build -v
+    
+    - name: Run TestRunner
+      run: .build/debug/TestRunner
+    
+    - name: Run Unit Tests
+      run: swift test -v

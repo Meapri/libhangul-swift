@@ -180,6 +180,15 @@ public final class HangulInputContext {
             return false
         }
     }
+    
+    /// 키 입력 처리 (Character 버전 - 사용자 친화적 API)
+    /// - Parameter char: 입력 문자
+    /// - Returns: 키가 처리되었으면 true
+    @discardableResult
+    public func process(_ char: Character) -> Bool {
+        guard let ascii = char.asciiValue else { return false }
+        return process(Int(ascii))
+    }
 
     /// Result 타입을 사용한 키 입력 처리 (내부 메서드)
     /// - Parameter key: ASCII 키 코드
@@ -521,16 +530,9 @@ public final class HangulInputContext {
         }
 
         // Fast path: 이미 NFC 정규화된 문자만 있는지 확인
-        // - ASCII(0x00-0x7F): 정규화 불필요
-        // - 완성형 한글(U+AC00-U+D7A3): 이미 NFC
-        // - 호환 자모(U+3131-U+318E): 이미 NFC
+        // HangulScalar.isAlreadyNormalized: ASCII, 완성형, 호환 자모 체크
         // ⚠️ 조합용 자모(U+1100-U+11FF)는 제외: 연속 시 NFC 결합 필요
-        let isSafeToSkip = text.allSatisfy { char in
-            let isASCII = char <= 0x7F
-            let isHangulSyllable = (0xAC00...0xD7A3).contains(char)
-            let isCompatJamo = (0x3131...0x318E).contains(char)
-            return isASCII || isHangulSyllable || isCompatJamo
-        }
+        let isSafeToSkip = text.allSatisfy { HangulScalar.isAlreadyNormalized($0) }
         
         if isSafeToSkip {
             return text  // Skip expensive String conversion

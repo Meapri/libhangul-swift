@@ -165,6 +165,86 @@ Shift: ㄲ(R), ㄸ(E), ㅃ(Q), ㅆ(T), ㅉ(W), ㅒ(O), ㅖ(P)
 
 ---
 
+## 🖥️ InputMethodKit 연동 (macOS)
+
+macOS 입력기 개발 시 `ThreadSafeHangulInputContext`를 사용하여 IMK 콜백에서 안전하게 한글 조합을 처리할 수 있습니다.
+
+### 기본 연동 예제
+
+```swift
+import InputMethodKit
+import LibHangul
+
+class MyInputController: IMKInputController {
+    // 스레드 안전 컨텍스트 사용
+    private let hangul = LibHangul.createThreadSafeInputContext(keyboard: "2")
+    
+    override func handle(_ event: NSEvent!, client sender: Any!) -> Bool {
+        guard let event = event, event.type == .keyDown else { return false }
+        guard let client = sender as? IMKTextInput else { return false }
+        
+        let keyCode = Int(event.keyCode)
+        
+        // 백스페이스 처리
+        if keyCode == 51 {
+            if hangul.backspace() {
+                updateMarkedText(client)
+                return true
+            }
+            return false
+        }
+        
+        // 일반 키 입력
+        guard let char = event.characters?.first,
+              let ascii = char.asciiValue else { return false }
+        
+        let processed: Bool = hangul.process(Int(ascii))
+        
+        if processed {
+            updateMarkedText(client)
+            return true
+        }
+        
+        // 한글 입력이 아닌 경우 현재 조합 확정
+        commitComposition(client)
+        return false
+    }
+    
+    private func updateMarkedText(_ client: IMKTextInput) {
+        let preedit = hangul.getPreeditString()
+        let committed = hangul.getCommitString()
+        
+        // 확정된 텍스트 삽입
+        if !committed.isEmpty {
+            let text = String(committed.compactMap { UnicodeScalar($0) }.map { Character($0) })
+            client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
+        }
+        
+        // 조합 중인 텍스트 표시
+        let markedText = String(preedit.compactMap { UnicodeScalar($0) }.map { Character($0) })
+        client.setMarkedText(markedText, 
+                            selectionRange: NSRange(location: markedText.count, length: 0),
+                            replacementRange: NSRange(location: NSNotFound, length: 0))
+    }
+    
+    private func commitComposition(_ client: IMKTextInput) {
+        let flushed = hangul.flush()
+        if !flushed.isEmpty {
+            let text = String(flushed.compactMap { UnicodeScalar($0) }.map { Character($0) })
+            client.insertText(text, replacementRange: NSRange(location: NSNotFound, length: 0))
+        }
+    }
+}
+```
+
+### 주의사항
+
+- **반드시 `ThreadSafeHangulInputContext` 사용**: IMK 콜백은 여러 스레드에서 호출될 수 있습니다.
+- **명시적 타입 지정**: `process()` 호출 시 `let processed: Bool = ...`로 명시해야 `Result` 오버로드와의 모호성을 피할 수 있습니다.
+- **키 매핑**: `event.keyCode`가 아닌 `event.characters`의 ASCII 값을 사용하세요.
+
+---
+
 ## 🏗️ 아키텍처
 
 ```
