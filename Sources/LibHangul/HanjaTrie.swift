@@ -7,104 +7,131 @@
 
 import Foundation
 
-/// Trie Node class for Hanja dictionary
-final class HanjaTrieNode {
-    /// Hanja entries at this node (can be multiple for the same key)
-    var values: [Hanja] = []
+/// Trie Node structure for Flat Array Trie
+/// Optimized to avoid heap allocation per node.
+struct HanjaTrieNode {
+    /// Hanja entries indices in the value storage
+    var valueIndices: [Int] = []
     
-    /// Child nodes mapped by character
-    var children: [Character: HanjaTrieNode] = [:]
+    /// Child nodes map: Character -> Index in `nodes` array
+    var children: [Character: Int] = [:]
 }
 
 /// A specialized Trie data structure for storing and retrieving Hanja entries.
 ///
-/// Advantages over Hash Map:
-/// - **Prefix Search**: O(m) where m is prefix length. No need to iterate or slice strings.
-/// - **Memory**: Shared prefixes reduce storage redundancy compared to storing full string keys.
+/// **Optimization Note**:
+/// This implementation uses a **Flat Array Trie** structure.
+/// Instead of allocating a `class` object for every node (which causes massive heap overhead and slower ARC),
+/// we store `struct` nodes in a single contiguous array.
+/// - **Memory**: Significantly reduced overhead (value type vs reference type).
+/// - **Performance**: Better cache locality and reduced GC/RC pressure.
 public final class HanjaTrie {
-    private let root = HanjaTrieNode()
+    /// Flat storage for all nodes. Index 0 is root.
+    private var nodes: [HanjaTrieNode] = []
     
-    public init() {}
+    /// Flat storage for all Hanja values to reduce duplication and reference counting updates in nodes
+    /// (Actually Hanja is a struct/class? Assuming struct or lightweight ref).
+    /// But wait, user code passes `Hanja`. Let's store `Hanja` objects directly in nodes for simplicity first,
+    /// or optimize further if needed. "valueIndices" above suggests indirect.
+    /// Let's stick to storing `[Hanja]` in nodes for now to keep logic simple, 
+    /// but since `HanjaTrieNode` is a struct, copying it might be heavy if array is large.
+    /// However, `valueIndices` is better if we have a central value store.
+    /// Let's use a central value store `allHanjaValues` and nodes store indices.
+    
+    private var allHanjaValues: [Hanja] = []
+    
+    /// The root node is always at index 0.
+    public init() {
+        // Initialize with root node
+        nodes.append(HanjaTrieNode())
+    }
     
     /// Insert a Hanja entry into the Trie
     public func insert(_ hanja: Hanja) {
-        var currentNode = root
+        var currentNodeIndex = 0
+        
         for char in hanja.key {
-            if let child = currentNode.children[char] {
-                currentNode = child
+            // Need to mutate the array, so we must be careful with CoW or indices.
+            // Since we append to `nodes`, existing indices might ideally stay stable if we just append.
+            // Accessing `nodes[currentNodeIndex]` directly.
+            
+            if let childIndex = nodes[currentNodeIndex].children[char] {
+                currentNodeIndex = childIndex
             } else {
-                let newNode = HanjaTrieNode()
-                currentNode.children[char] = newNode
-                currentNode = newNode
+                // Create new node
+                let newNodeIndex = nodes.count
+                nodes.append(HanjaTrieNode())
+                
+                // Link parent to new child.
+                // Note: Re-access `nodes[currentNodeIndex]` because `nodes` might have been reallocated by append.
+                nodes[currentNodeIndex].children[char] = newNodeIndex
+                
+                currentNodeIndex = newNodeIndex
             }
         }
-        currentNode.values.append(hanja)
+        
+        // Add value to the leaf node
+        // Store the actual Hanja in a centralized array and keep the index in the node
+        let valueIndex = allHanjaValues.count
+        allHanjaValues.append(hanja)
+        nodes[currentNodeIndex].valueIndices.append(valueIndex)
     }
     
     /// Search for exact match
     /// - Parameter key: The key to search for
     /// - Returns: List of Hanja entries or nil if not found
     public func search(key: String) -> [Hanja]? {
-        guard let node = findNode(key: key) else { return nil }
-        return node.values.isEmpty ? nil : node.values
+        guard let nodeIndex = findNodeIndex(key: key) else { return nil }
+        
+        let indices = nodes[nodeIndex].valueIndices
+        if indices.isEmpty { return nil }
+        
+        return indices.map { allHanjaValues[$0] }
     }
     
     /// Search for all entries matching the prefix
-    /// - Parameter prefix: The prefix to search for
-    /// - Returns: A flat list of ALL Hanja entries that start with this prefix (including exact match)
-    /// - Note: In Hanja input context, "prefix match" usually means "find the longest matching prefix" logic
-    ///         handled by the caller. If you literally mean "all words starting with...", this does traversal.
-    ///         However, for Hanja conversion, we usually iterate backwards or scan used `HanjaTable.matchPrefix`.
-    ///         Since `HanjaTable.matchPrefix` logic was "find exact matches for successively shorter prefixes",
-    ///         the Trie directly supports this without string slicing by simple traversal logic.
-    private func findNode(key: String) -> HanjaTrieNode? {
-        var currentNode = root
-        for char in key {
-            guard let child = currentNode.children[char] else {
-                return nil
-            }
-            currentNode = child
-        }
-        return currentNode
-    }
-    
-    /// Optimized Prefix Matching for Hanja Conversion
-    ///
-    /// This replicates the behavior of `HanjaTable.matchPrefix` but excessively faster.
-    /// It traverses the Trie with the key. At each step, if a valid node exists and has values,
-    /// those values are candidates.
-    ///
-    /// - Parameter key: The full key to check
-    /// - Returns: A list of ALL valid Hanja matches found along the path of the key.
-    ///            (e.g. key="국제연합", finds "국", "국제", "국제연합" if they exist)
+    /// Optimized for memory and lookups.
     public func searchPrefixes(for key: String) -> [Hanja] {
         var results: [Hanja] = []
-        var currentNode = root
-        
-        // This traverses the key and collects ANY valid word formed by a prefix of the key.
-        // NOTE: The original matchPrefix logic was "try full key, then drop last, try again...".
-        // This is equivalent to walking down the Trie and collecting results at each node.
+        var currentNodeIndex = 0
         
         for char in key {
-            guard let child = currentNode.children[char] else {
-                break // No more longer prefixes exist
+            guard let childIndex = nodes[currentNodeIndex].children[char] else {
+                break 
             }
-            currentNode = child
-            if !currentNode.values.isEmpty {
-                results.append(contentsOf: currentNode.values)
+            currentNodeIndex = childIndex
+            
+            // Collect values at this node
+            let indices = nodes[currentNodeIndex].valueIndices
+            if !indices.isEmpty {
+                results.append(contentsOf: indices.map { allHanjaValues[$0] })
             }
         }
         
         return results
     }
     
+    private func findNodeIndex(key: String) -> Int? {
+        var currentNodeIndex = 0
+        for char in key {
+            guard let childIndex = nodes[currentNodeIndex].children[char] else {
+                return nil
+            }
+            currentNodeIndex = childIndex
+        }
+        return currentNodeIndex
+    }
+    
     /// Clears the Trie
     public func clear() {
-        root.children.removeAll()
-        root.values.removeAll()
+        nodes.removeAll(keepingCapacity: false)
+        allHanjaValues.removeAll(keepingCapacity: false)
+        // Reinstate root
+        nodes.append(HanjaTrieNode())
     }
     
     public var isEmpty: Bool {
-        root.children.isEmpty
+        // Root is always present, check if it has children
+        nodes[0].children.isEmpty
     }
 }

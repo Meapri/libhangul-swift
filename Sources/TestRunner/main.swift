@@ -37,7 +37,7 @@ class TestRunner {
         
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -53,7 +53,7 @@ class TestRunner {
         
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -70,7 +70,7 @@ class TestRunner {
         print("DEBUG: Starting Syllable Separation Test")
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
             _ = inputContext.getPreeditString()
             _ = inputContext.getCommitString() // WARNING: This consumes commit string!
             // We need to accumulate commit string for final result, but here we just print it
@@ -92,7 +92,7 @@ class TestRunner {
         
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            let _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
             
             let currentCommit = inputContext.getCommitString()
             let currentCommitStr = String(currentCommit.compactMap { UnicodeScalar($0) }.map { Character($0) })
@@ -121,7 +121,7 @@ class TestRunner {
         
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -138,7 +138,7 @@ class TestRunner {
         
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
         }
         
         let result = inputContext.getCommitString() + inputContext.flush()
@@ -154,7 +154,7 @@ class TestRunner {
         
         for key in inputs {
             let charCode = Int(Character(key).asciiValue!)
-            _ = inputContext.process(charCode)
+            let _: Bool = inputContext.process(charCode)
         }
         
         // Check buffer state implicitly via string
@@ -167,7 +167,7 @@ class TestRunner {
     
     func processInput(_ keys: String) {
         for char in keys {
-            _ = inputContext.process(Int(char.asciiValue!))
+            let _: Bool = inputContext.process(Int(char.asciiValue!))
         }
     }
     
@@ -282,7 +282,7 @@ class TestRunner {
         reset()
         // 국 + ㄱ = 굮 -> BS -> 국
         processInput("rnr") // ㄱㅜㄱ
-        _ = inputContext.process(Int(Character("r").asciiValue!)) // + ㄱ -> 굮 (ㄲ jongseong)
+        let _: Bool = inputContext.process(Int(Character("r").asciiValue!)) // + ㄱ -> 굮 (ㄲ jongseong)
         
         _ = getPreeditString() // preedit 결과는 로직 확인용이나 별도 검증 불필요
         // Note: 굮 is rare, might display weirdly, but checking logic
@@ -474,7 +474,7 @@ class TestRunner {
         
         // Bug 4: ㅇ (d) key alone, then flush - should produce valid output
         reset()
-        _ = inputContext.process(Int(Character("d").asciiValue!)) // ㅇ
+        let _: Bool = inputContext.process(Int(Character("d").asciiValue!)) // ㅇ
         let preeditD = getPreeditString()
         print("DEBUG: ㅇ alone preedit: '\(preeditD)' (hex: \(preeditD.unicodeScalars.map { String(format: "%04X", $0.value) }))")
         
@@ -485,7 +485,7 @@ class TestRunner {
         
         // Bug 5: ㅁ (a) key alone, then flush
         reset()
-        _ = inputContext.process(Int(Character("a").asciiValue!)) // ㅁ
+        let _: Bool = inputContext.process(Int(Character("a").asciiValue!)) // ㅁ
         let preeditA = getPreeditString()
         print("DEBUG: ㅁ alone preedit: '\(preeditA)' (hex: \(preeditA.unicodeScalars.map { String(format: "%04X", $0.value) }))")
         
@@ -511,7 +511,7 @@ class TestRunner {
         var allPassed = true
         for key in choseongKeys {
             reset()
-            _ = inputContext.process(Int(Character(key).asciiValue!))
+            let _: Bool = inputContext.process(Int(Character(key).asciiValue!))
             let flushed = inputContext.flush()
             if flushed.isEmpty {
                 print("❌ FAILED: Key '\(key)' flush returned empty!")
@@ -552,7 +552,7 @@ class TestRunner {
             queue.async {
                 let keys = ["r", "k", "s", "k"] // 간단한 한글 입력
                 for key in keys {
-                    _ = context.process(Int(Character(key).asciiValue!))
+                    let _: Bool = context.process(Int(Character(key).asciiValue!))
                 }
                 _ = context.flush()
                 
@@ -579,8 +579,8 @@ class TestRunner {
         let queue = DispatchQueue(label: "test.flush", attributes: .concurrent)
         
         // 먼저 데이터 입력
-        _ = context.process(Int(Character("r").asciiValue!))
-        _ = context.process(Int(Character("k").asciiValue!))
+        let _: Bool = context.process(Int(Character("r").asciiValue!))
+        let _: Bool = context.process(Int(Character("k").asciiValue!))
         
         var flushCount = 0
         let lock = NSLock()
@@ -625,7 +625,7 @@ class TestRunner {
                     switch operation {
                     case 0:
                         let keys = ["r", "k", "s", "e", "f"]
-                        _ = context.process(Int(Character(keys.randomElement()!).asciiValue!))
+                        let _: Bool = context.process(Int(Character(keys.randomElement()!).asciiValue!))
                     case 1:
                         _ = context.backspace()
                     case 2:

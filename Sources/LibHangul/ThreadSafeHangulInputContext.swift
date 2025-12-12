@@ -13,11 +13,17 @@ import Foundation
 /// NSLock을 사용하여 스레드 안전성을 보장하며, 동기적 호출을 지원합니다.
 /// InputMethodKit 등 동기 콜백 환경에서 사용할 수 있습니다.
 ///
+/// ## Concurrency Safety
+/// - `@unchecked Sendable` adoption:
+///   InputMethodKit APIs often require synchronous returns from delegate methods. 
+///   Using standard Actors with `await` is incompatible with these synchronous system callbacks.
+///   Therefore, we use `NSLock` to ensure internal thread safety while maintaining a synchronous API surface.
+///   The compiler cannot verify lock-based safety automatically, hence `@unchecked`.
+///
 /// ## 사용 예시
 /// ```swift
 /// let context = ThreadSafeHangulInputContext(keyboard: "2")
-/// let processed = context.process(Int(Character("g").asciiValue!))
-/// let preedit = context.getPreeditString()
+/// let result = context.process(Int(Character("g").asciiValue!)) // Returns Result<Bool, HangulError>
 /// ```
 public final class ThreadSafeHangulInputContext: @unchecked Sendable {
 
@@ -32,22 +38,29 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
 
     // MARK: - Initialization
 
+    // MARK: - Initialization
+
     /// 기본 생성자
-    public init(keyboard: String? = nil, configuration: HangulInputConfiguration = .default) {
+    public init(keyboard: String? = nil, 
+                configuration: HangulInputConfiguration = .default,
+                keyboardManager: HangulKeyboardManager = HangulKeyboardManager()) {
         self.configuration = configuration
-        self.context = HangulInputContext(keyboard: keyboard, configuration: configuration)
+        self.context = HangulInputContext(keyboard: keyboard, configuration: configuration, keyboardManager: keyboardManager)
     }
 
     /// 키보드 지정 생성자
-    public init(keyboard: HangulKeyboard, configuration: HangulInputConfiguration = .default) {
+    public init(keyboard: HangulKeyboard, 
+                configuration: HangulInputConfiguration = .default,
+                keyboardManager: HangulKeyboardManager = HangulKeyboardManager()) {
         self.configuration = configuration
-        self.context = HangulInputContext(keyboard: keyboard, configuration: configuration)
+        self.context = HangulInputContext(keyboard: keyboard, configuration: configuration, keyboardManager: keyboardManager)
     }
 
     /// 설정으로만 초기화
-    public init(configuration: HangulInputConfiguration = .default) {
+    public init(configuration: HangulInputConfiguration = .default,
+                keyboardManager: HangulKeyboardManager = HangulKeyboardManager()) {
         self.configuration = configuration
-        self.context = HangulInputContext(configuration: configuration)
+        self.context = HangulInputContext(configuration: configuration, keyboardManager: keyboardManager)
     }
 
     // MARK: - Private Helper
@@ -61,12 +74,26 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
 
     // MARK: - Public Methods
 
-    /// 키 입력 처리 (스레드 안전, 동기)
+    /// 키 입력 처리 (Result 반환 버전)
     /// - Parameter key: ASCII 키 코드
-    /// - Returns: 키가 처리되었으면 true
-    public func process(_ key: Int) -> Bool {
+    /// - Returns: 처리 결과 (성공 시 Bool, 실패 시 HangulError)
+    public func process(_ key: Int) -> Result<Bool, HangulError> {
         synchronized {
             context.process(key)
+        }
+    }
+
+    /// 키 입력 처리 (기존 Bool 반환 버전 - 하위 호환성)
+    /// - Parameter key: ASCII 키 코드
+    /// - Returns: 키가 처리되었으면 true
+    @discardableResult
+    public func process(_ key: Int) -> Bool {
+        let result: Result<Bool, HangulError> = process(key)
+        switch result {
+        case .success(let success):
+            return success
+        case .failure:
+            return false
         }
     }
 
@@ -306,7 +333,7 @@ extension ThreadSafeHangulInputContext {
             var results: [HangulInputResult] = []
 
             for key in keys {
-                let processed = context.process(key)
+                let processed: Bool = context.process(key)
                 let preedit = context.getPreeditString()
                 let committed = context.getCommitString()
 

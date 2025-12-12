@@ -120,9 +120,11 @@ public final class HangulInputContext {
     // MARK: - Initialization
 
     /// 기본 생성자
-    public init(keyboard: String? = nil, configuration: HangulInputConfiguration = .default) {
+    public init(keyboard: String? = nil, 
+                configuration: HangulInputConfiguration = .default,
+                keyboardManager: HangulKeyboardManager = HangulKeyboardManager()) {
         self.configuration = configuration
-        self.keyboardManager = HangulKeyboardManager()
+        self.keyboardManager = keyboardManager
         self.buffer = HangulBuffer(maxStackSize: configuration.maxBufferSize)
         let keyboardId = keyboard ?? configuration.defaultKeyboard
         setKeyboard(with: keyboardId)
@@ -130,18 +132,21 @@ public final class HangulInputContext {
     }
 
     /// 키보드 지정 생성자
-    public init(keyboard: HangulKeyboard, configuration: HangulInputConfiguration = .default) {
+    public init(keyboard: HangulKeyboard, 
+                configuration: HangulInputConfiguration = .default,
+                keyboardManager: HangulKeyboardManager = HangulKeyboardManager()) {
         self.configuration = configuration
-        self.keyboardManager = HangulKeyboardManager()
+        self.keyboardManager = keyboardManager
         self.buffer = HangulBuffer(maxStackSize: configuration.maxBufferSize)
         self.keyboard = keyboard
         setOutputMode(configuration.outputMode)
     }
 
     /// 설정으로만 초기화
-    public init(configuration: HangulInputConfiguration = .default) {
+    public init(configuration: HangulInputConfiguration = .default,
+                keyboardManager: HangulKeyboardManager = HangulKeyboardManager()) {
         self.configuration = configuration
-        self.keyboardManager = HangulKeyboardManager()
+        self.keyboardManager = keyboardManager
         self.buffer = HangulBuffer(maxStackSize: configuration.maxBufferSize)
         setKeyboard(with: configuration.defaultKeyboard)
         setOutputMode(configuration.outputMode)
@@ -149,16 +154,30 @@ public final class HangulInputContext {
 
     // MARK: - Public Methods
 
-    /// 키 입력 처리
+    /// 키 입력 처리 (Result 반환 버전)
     /// - Parameter key: ASCII 키 코드
-    /// - Returns: 키가 처리되었으면 true
-    public func process(_ key: Int) -> Bool {
+    /// - Returns: 처리 결과 (성공 시 Bool, 실패 시 HangulError)
+    public func process(_ key: Int) -> Result<Bool, HangulError> {
         let result = processKey(key)
         switch result {
         case .success(let processed):
-            return processed
+            return .success(processed)
         case .failure(let error):
             handleError(error, for: key)
+            return .failure(error)
+        }
+    }
+
+    /// 키 입력 처리 (기존 Bool 반환 버전 - 하위 호환성)
+    /// - Parameter key: ASCII 키 코드
+    /// - Returns: 키가 처리되었으면 true
+    @discardableResult
+    public func process(_ key: Int) -> Bool {
+        let result: Result<Bool, HangulError> = process(key)
+        switch result {
+        case .success(let success):
+            return success
+        case .failure:
             return false
         }
     }
@@ -503,15 +522,33 @@ public final class HangulInputContext {
     /// 유니코드 정규화된 문자열 반환
     /// - Parameter text: 정규화할 텍스트
     /// - Returns: NFC 정규화된 문자열
+    /// 유니코드 정규화된 문자열 반환 (성능 최적화됨)
+    /// - Parameter text: 정규화할 텍스트
+    /// - Returns: NFC 정규화된 문자열
     internal func normalizeUnicode(_ text: [UCSChar]) -> [UCSChar] {
-        if !forceNFCNormalization {
+        if !forceNFCNormalization || text.isEmpty {
             return text
         }
 
-        let characters = text.compactMap { UnicodeScalar($0) }.map { Character($0) }
-        let string = String(characters)
+        // Fast path: ASCII만 있는 경우 (정규화 불필요)
+        // 0xAC00(가) 미만이고 특수 결합 자모가 없으면 대부분 정규화 불필요
+        // 하지만 안전을 위해 한글 범위만 체크
+        let needsNormalization = text.contains { $0 >= 0x1100 }
+        if !needsNormalization {
+             return text
+        }
+
+        // [UCSChar] -> String 변환 최적화
+        // compactMap + map 대신, UnicodeScalar 뷰를 직접 생성하여 String 초기화
+        let scalarView = text.lazy.compactMap { UnicodeScalar($0) }
+        var string = ""
+        string.unicodeScalars.append(contentsOf: scalarView)
+        
+        // 정규화 (NFC)
         let normalized = string.precomposedStringWithCanonicalMapping
-        return normalized.unicodeScalars.map { $0.value }
+        
+        // String -> [UCSChar] 변환 최적화
+        return normalized.unicodeScalars.map { UCSChar($0.value) }
     }
 
     /// 입력 처리 전 검증

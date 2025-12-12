@@ -301,17 +301,11 @@ public enum LibHangul {
     /// - Parameter keyboard: 키보드 식별자 (기본값: "2" - 두벌식)
     /// - Returns: 생성된 컨텍스트 또는 오류
     public static func createInputContext(keyboard: String = "2") -> Result<HangulInputContext, HangulError> {
-        do {
             let configuration = HangulInputConfiguration.safe(
                 defaultKeyboard: keyboard,
                 performanceMode: .balanced
             )
             return .success(HangulInputContext(configuration: configuration))
-        } catch let error as HangulError {
-            return .failure(error)
-        } catch {
-            return .failure(.configurationError(reason: error.localizedDescription))
-        }
     }
 
     /// 새로운 한글 입력 컨텍스트 생성 (키보드 객체 지정)
@@ -319,14 +313,8 @@ public enum LibHangul {
     /// - Parameter keyboard: 키보드 객체
     /// - Returns: HangulInputContext 인스턴스
     public static func createInputContext(keyboard: HangulKeyboard) -> Result<HangulInputContext, HangulError> {
-        do {
             let configuration = HangulInputConfiguration.safe()
             return .success(HangulInputContext(keyboard: keyboard, configuration: configuration))
-        } catch let error as HangulError {
-            return .failure(error)
-        } catch {
-            return .failure(.configurationError(reason: error.localizedDescription))
-        }
     }
 
     /// 설정으로 한글 입력 컨텍스트 생성
