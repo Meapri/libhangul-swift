@@ -455,6 +455,7 @@ public final class HangulInputContext {
     }
 
     /// 기존 flush 메서드 (하위 호환성)
+    @available(*, deprecated, message: "Use flush() instead")
     public func legacyFlush() -> [UCSChar] {
         var result = commitString
 

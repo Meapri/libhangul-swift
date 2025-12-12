@@ -5,10 +5,10 @@ import PackageDescription
 let package = Package(
     name: "LibHangul",
     platforms: [
-        .macOS(.v13),
-        .iOS(.v13),
-        .tvOS(.v13),
-        .watchOS(.v6),
+        .macOS(.v14),
+        .iOS(.v17),
+        .tvOS(.v17),
+        .watchOS(.v10),
         .visionOS(.v1)
     ],
     products: [

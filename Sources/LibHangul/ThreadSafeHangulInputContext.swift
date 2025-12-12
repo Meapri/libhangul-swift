@@ -3,22 +3,23 @@
 //  LibHangul
 //
 //  스레드 안전한 한글 입력 컨텍스트 래퍼
-//  Lock 기반으로 구현되어 동기적 호출 지원
+//  OSAllocatedUnfairLock 기반으로 구현되어 고성능 동기적 호출 지원
 //
 
 import Foundation
+import os
 
 /// 스레드 안전한 한글 입력 컨텍스트
 /// 
-/// NSLock을 사용하여 스레드 안전성을 보장하며, 동기적 호출을 지원합니다.
+/// `OSAllocatedUnfairLock`을 사용하여 스레드 안전성을 보장하며, 동기적 호출을 지원합니다.
 /// InputMethodKit 등 동기 콜백 환경에서 사용할 수 있습니다.
 ///
 /// ## Concurrency Safety
 /// - `@unchecked Sendable` adoption:
 ///   InputMethodKit APIs often require synchronous returns from delegate methods. 
 ///   Using standard Actors with `await` is incompatible with these synchronous system callbacks.
-///   Therefore, we use `NSLock` to ensure internal thread safety while maintaining a synchronous API surface.
-///   The compiler cannot verify lock-based safety automatically, hence `@unchecked`.
+///   Therefore, we use `OSAllocatedUnfairLock` to ensure internal thread safety while maintaining a synchronous API surface.
+///   `OSAllocatedUnfairLock` provides lower overhead than `NSLock` and is the recommended lock for Swift 6.
 ///
 /// ## 사용 예시
 /// ```swift
@@ -29,8 +30,8 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
 
     // MARK: - Properties
 
-    /// 동기화를 위한 Lock
-    private let lock = NSLock()
+    /// 동기화를 위한 Lock (macOS 14+ / iOS 17+)
+    private let lock = OSAllocatedUnfairLock()
     
     /// 내부적으로 사용하는 실제 컨텍스트 (lock에 의해 보호됨)
     private var context: HangulInputContext

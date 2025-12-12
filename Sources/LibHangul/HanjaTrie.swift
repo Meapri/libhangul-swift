@@ -2,29 +2,78 @@
 //  HanjaTrie.swift
 //  LibHangul
 //
-//  Created for Hanja Engine Optimization
+//  Hanja Trie 최적화 - Sorted Array + Binary Search
 //
 
 import Foundation
 
-/// Trie Node structure for Flat Array Trie
-/// Optimized to avoid heap allocation per node.
+/// Trie Node structure using Sorted Arrays
+/// 
+/// **최적화 설명**:
+/// Dictionary 대신 정렬된 배열 + 이진 탐색을 사용하여:
+/// - 해싱 오버헤드 제거
+/// - 더 나은 캐시 지역성 (연속 메모리)
+/// - CoW 복사 비용 감소
 struct HanjaTrieNode {
     /// Hanja entries indices in the value storage
     var valueIndices: [Int] = []
     
-    /// Child nodes map: Character -> Index in `nodes` array
-    var children: [Character: Int] = [:]
+    /// 자식 노드 키 (정렬됨)
+    var childKeys: [Character] = []
+    /// 자식 노드 인덱스 (childKeys와 병렬)
+    var childIndices: [Int] = []
+    
+    /// Binary search로 자식 찾기
+    @inlinable
+    func findChild(_ char: Character) -> Int? {
+        var low = 0
+        var high = childKeys.count - 1
+        
+        while low <= high {
+            let mid = (low + high) / 2
+            let midChar = childKeys[mid]
+            
+            if midChar == char {
+                return childIndices[mid]
+            } else if midChar < char {
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        return nil
+    }
+    
+    /// 자식 추가 (정렬 유지)
+    @inlinable
+    mutating func addChild(_ char: Character, index: Int) {
+        // 삽입 위치 찾기 (이진 탐색)
+        var insertIndex = 0
+        var low = 0
+        var high = childKeys.count - 1
+        
+        while low <= high {
+            let mid = (low + high) / 2
+            if childKeys[mid] < char {
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
+        }
+        insertIndex = low
+        
+        childKeys.insert(char, at: insertIndex)
+        childIndices.insert(index, at: insertIndex)
+    }
 }
 
 /// A specialized Trie data structure for storing and retrieving Hanja entries.
 ///
 /// **Optimization Note**:
-/// This implementation uses a **Flat Array Trie** structure.
-/// Instead of allocating a `class` object for every node (which causes massive heap overhead and slower ARC),
-/// we store `struct` nodes in a single contiguous array.
-/// - **Memory**: Significantly reduced overhead (value type vs reference type).
-/// - **Performance**: Better cache locality and reduced GC/RC pressure.
+/// This implementation uses **Sorted Arrays + Binary Search** instead of Dictionary.
+/// - **No Hashing Overhead**: Direct comparison instead of hash computation.
+/// - **Better Cache Locality**: Contiguous memory layout.
+/// - **Reduced CoW Cost**: Smaller data structures copy faster.
 public final class HanjaTrie {
     /// Flat storage for all nodes. Index 0 is root.
     private var nodes: [HanjaTrieNode] = []
@@ -34,7 +83,6 @@ public final class HanjaTrie {
     
     /// The root node is always at index 0.
     public init() {
-        // Initialize with root node
         nodes.append(HanjaTrieNode())
     }
     
@@ -43,35 +91,22 @@ public final class HanjaTrie {
         var currentNodeIndex = 0
         
         for char in hanja.key {
-            // Need to mutate the array, so we must be careful with CoW or indices.
-            // Since we append to `nodes`, existing indices might ideally stay stable if we just append.
-            // Accessing `nodes[currentNodeIndex]` directly.
-            
-            if let childIndex = nodes[currentNodeIndex].children[char] {
+            if let childIndex = nodes[currentNodeIndex].findChild(char) {
                 currentNodeIndex = childIndex
             } else {
-                // Create new node
                 let newNodeIndex = nodes.count
                 nodes.append(HanjaTrieNode())
-                
-                // Link parent to new child.
-                // Note: Re-access `nodes[currentNodeIndex]` because `nodes` might have been reallocated by append.
-                nodes[currentNodeIndex].children[char] = newNodeIndex
-                
+                nodes[currentNodeIndex].addChild(char, index: newNodeIndex)
                 currentNodeIndex = newNodeIndex
             }
         }
         
-        // Add value to the leaf node
-        // Store the actual Hanja in a centralized array and keep the index in the node
         let valueIndex = allHanjaValues.count
         allHanjaValues.append(hanja)
         nodes[currentNodeIndex].valueIndices.append(valueIndex)
     }
     
     /// Search for exact match
-    /// - Parameter key: The key to search for
-    /// - Returns: List of Hanja entries or nil if not found
     public func search(key: String) -> [Hanja]? {
         guard let nodeIndex = findNodeIndex(key: key) else { return nil }
         
@@ -82,18 +117,16 @@ public final class HanjaTrie {
     }
     
     /// Search for all entries matching the prefix
-    /// Optimized for memory and lookups.
     public func searchPrefixes(for key: String) -> [Hanja] {
         var results: [Hanja] = []
         var currentNodeIndex = 0
         
         for char in key {
-            guard let childIndex = nodes[currentNodeIndex].children[char] else {
-                break 
+            guard let childIndex = nodes[currentNodeIndex].findChild(char) else {
+                break
             }
             currentNodeIndex = childIndex
             
-            // Collect values at this node
             let indices = nodes[currentNodeIndex].valueIndices
             if !indices.isEmpty {
                 results.append(contentsOf: indices.map { allHanjaValues[$0] })
@@ -106,7 +139,7 @@ public final class HanjaTrie {
     private func findNodeIndex(key: String) -> Int? {
         var currentNodeIndex = 0
         for char in key {
-            guard let childIndex = nodes[currentNodeIndex].children[char] else {
+            guard let childIndex = nodes[currentNodeIndex].findChild(char) else {
                 return nil
             }
             currentNodeIndex = childIndex
@@ -118,12 +151,10 @@ public final class HanjaTrie {
     public func clear() {
         nodes.removeAll(keepingCapacity: false)
         allHanjaValues.removeAll(keepingCapacity: false)
-        // Reinstate root
         nodes.append(HanjaTrieNode())
     }
     
     public var isEmpty: Bool {
-        // Root is always present, check if it has children
-        nodes[0].children.isEmpty
+        nodes[0].childKeys.isEmpty
     }
 }
