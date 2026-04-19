@@ -54,8 +54,25 @@ public class HangulKeyboard {
     /// 키 코드를 자모로 변환
     /// - Parameter key: ASCII 키 코드
     /// - Returns: 변환된 자모 코드, 없으면 0
+    ///
+    /// 대문자에 명시적 매핑이 없으면 소문자 매핑으로 폴백합니다.
+    /// 이를 통해 Shift 변환이 없는 키(예: 두벌식에서 Shift+A→ㅁ)가
+    /// 별도 매핑 없이도 정상 동작합니다.
     public func mapKey(_ key: Int) -> UCSChar {
-        return keyMap[key] ?? 0
+        if let mapped = keyMap[key] {
+            return mapped
+        }
+        // 대문자에 매핑이 없으면 소문자로 폴백
+        if let scalar = UnicodeScalar(key) {
+            let char = Character(scalar)
+            if char.isUppercase {
+                let lowered = char.lowercased()
+                if let lowerChar = lowered.first, let ascii = lowerChar.asciiValue {
+                    return keyMap[Int(ascii)] ?? 0
+                }
+            }
+        }
+        return 0
     }
 
     /// 키보드 타입 설정
