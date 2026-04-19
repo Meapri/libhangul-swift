@@ -145,10 +145,6 @@ public final class HangulKeyboardDefault: HangulKeyboard {
         // keyMap[Int(Character("1").asciiValue!)] = 0x11AB
         // 불필요한 매핑 제거를 하지 않음
     }
-
-    public override func mapKey(_ key: Int) -> UCSChar {
-        return keyMap[key] ?? 0
-    }
 }
 
 /// 세벌식 키보드 구현체
@@ -218,10 +214,6 @@ public final class HangulKeyboard3Set: HangulKeyboard {
         keyMap[Int(Character("S").asciiValue!)] = 0x11C0  // ㅌ
         keyMap[Int(Character("A").asciiValue!)] = 0x11C1  // ㅍ
         keyMap[Int(Character("Z").asciiValue!)] = 0x11C2  // ㅎ
-    }
-
-    public override func mapKey(_ key: Int) -> UCSChar {
-        return keyMap[key] ?? 0
     }
 }
 
