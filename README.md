@@ -1,82 +1,82 @@
 # libhangul-swift
 
-**Pure Swift로 구현된 고성능 한글 입력 엔진**
+**C의 한계를 극복한 100% Pure Swift 고성능 한글 입력 엔진**
 
-`libhangul-swift`는 C 언어 기반의 `libhangul`을 현대적인 Swift 6 아키텍처로 완전히 재작성한 라이브러리입니다. C 라이브러리 의존성 없이 순수 Swift로 구현되어 Apple 생태계(macOS, iOS, iPadOS 등) 어디에서나 즉시 통합 가능하며, Strict Concurrency를 완벽하게 준수합니다.
-
----
-
-## 핵심 차별점
-
-### 1. Pure Swift & 크로스 플랫폼
-외부 C/C++ 라이브러리 브릿징이나 포인터 연산 없이 **100% 순수 Swift**로 설계되었습니다. 메모리 누수나 크래시 위험이 없으며, macOS의 `InputMethodKit`뿐만 아니라 iOS 커스텀 키보드 등 어떠한 Apple 플랫폼 환경에서도 즉시 사용할 수 있습니다.
-
-### 2. 고성능 스레드 동기화 (Zero-Cost Abstraction)
-입력기 엔진은 아주 짧은 지연 시간(Low Latency)이 생명입니다. `libhangul-swift`는 Swift 6의 표준 동시성 모델에서 발생할 수 있는 비동기 오버헤드를 제거하기 위해 `OSAllocatedUnfairLock`을 도입했습니다.
-- `ThreadSafeHangulInputContext`는 데이터 경쟁(Data Race)을 완벽히 방지하면서도, **동기적(Synchronous) API**를 유지하여 `IMKInputController` 콜백 등 동기성이 강제되는 시스템 API와 완벽하게 호환됩니다.
-
-### 3. 강력한 타입 안정성 (Type Safety)
-기존 C 라이브러리의 모호한 `int` 타입 키 코드를 버리고, 명시적인 `KeyInput` 열거형을 도입했습니다.
-- `KeyInput.character("r")`: 일반 문자 입력
-- `KeyInput.keyCode(51)`: 시스템 특수 키(백스페이스 등) 입력
-컴파일러 수준에서 잘못된 키 입력 처리를 방지하고 유지보수성을 극대화했습니다.
-
-### 4. 다양한 한글 자판 지원
-표준 두벌식은 물론, 세벌식 390, 세벌식 최종, 그리고 고어(옛한글) 입력을 위한 특수 자판까지 모두 내장하고 있습니다.
+`libhangul-swift`는 수십 년간 널리 쓰여온 C 기반 `libhangul`의 복잡한 포인터 로직과 레거시를 과감히 버리고, Apple 생태계에 가장 완벽하게 최적화된 형태로 재탄생시킨 차세대 한글 입력 코어 엔진입니다. macOS, iOS, iPadOS 등 플랫폼을 가리지 않고 최고 수준의 속도와 안정성으로 한글 조합을 처리합니다.
 
 ---
 
-## 시작하기
+## 🚀 왜 libhangul-swift인가요?
 
-### SPM (Swift Package Manager) 설치
+### 1. C 의존성 제로, 100% 네이티브 Swift
+기존 한글 입력기 개발자들은 C 라이브러리를 브릿징(Bridging)하며 메모리 누수와 크래시에 시달려야 했습니다.
+- **포인터 해방**: `libhangul-swift`는 단 한 줄의 C 코드나 불안정한 포인터 연산 없이, 오직 Swift만으로 처음부터 끝까지 새로 작성되었습니다.
+- **어디서든 즉시 사용**: 패키지 하나만 추가하면 macOS의 `InputMethodKit`은 물론 iOS의 커스텀 키보드 Extension에서도 즉시 네이티브 수준의 한글 엔진을 탑재할 수 있습니다.
+
+### 2. 한 치의 오차도 없는 동기화 (Zero-Cost Abstraction)
+입력기는 0.01초의 지연(Latency)도 용납되지 않는 극한의 실시간 소프트웨어입니다.
+- **초고속 UnfairLock 도입**: 최신 Swift 6의 강력한 동시성 모델(Strict Concurrency)을 완벽히 지원하면서도, 비동기(Async) 큐 변환 과정에서 발생하는 스위칭 오버헤드를 막기 위해 `OSAllocatedUnfairLock`을 깊숙이 적용했습니다.
+- 멀티스레드 환경에서 데이터가 꼬이는 일(Data Race)을 물리적으로 차단하면서, 기존 C 함수처럼 **즉각적이고 동기적인(Synchronous) 응답**을 보장합니다.
+
+### 3. 더 똑똑하고 거침없는 한자 엔진
+수만 개가 넘는 한자 사전을 매번 뒤지는 것은 매우 무거운 작업입니다.
+- **Trie 기반 초고속 검색**: 구형 해시맵 구조의 한계를 부수고 Prefix Tree(Trie) 자료구조를 자체 설계했습니다. 접두어 기반 매칭(`matchPrefix`)에서 O(m)의 압도적인 속도로 수천 개의 한자 후보군을 즉각 뽑아냅니다.
+- **메모리 스트리밍 파싱**: 거대한 한자 DB를 메모리에 무식하게 얹지 않고, `String.enumerateLines`를 활용해 스트림 방식으로 지능적으로 파싱하여 앱의 초기 실행 속도를 획기적으로 낮췄습니다.
+
+### 4. 컴파일 타임에 버그를 잡는 타입 안정성
+더 이상 '알 수 없는 Int 코드 값' 때문에 런타임 크래시를 겪지 마세요.
+- 모호한 정수형 키 코드를 버리고 `KeyInput.character("r")`나 `KeyInput.keyCode(51)`과 같이 명시적인 타입(Type-Safety)을 강제합니다. 키보드의 어떤 물리적 입력을 넘겨도 컴파일러가 먼저 검증합니다.
+
+---
+
+## 💻 시작하기 (Getting Started)
+
+### SPM (Swift Package Manager) 통합
+프로젝트의 `Package.swift`에 단 한 줄만 추가하면 준비가 끝납니다.
+
 ```swift
 dependencies: [
     .package(url: "https://github.com/Meapri/libhangul-swift.git", branch: "main")
 ]
 ```
 
-### 기본 사용법
-
-안전한 멀티스레드 환경을 위해 `ThreadSafeHangulInputContext` 사용을 권장합니다.
+### 압도적으로 쉬운 사용법
+단 4줄의 코드로 당신의 앱에 완벽한 한글 조합 시스템을 이식하세요.
 
 ```swift
 import LibHangul
 
-// 1. 컨텍스트 초기화 (두벌식)
+// 1. 최고 성능의 스레드 안전 컨텍스트 활성화 (두벌식)
 let context = LibHangul.createThreadSafeInputContext(keyboard: "2")
 
-// 2. 키 입력 전달 (예: 'ㄱ', 'ㅏ', 'ㄱ')
+// 2. 키보드 입력 전달 ('ㄱ', 'ㅏ', 'ㄱ')
 _ = context.process(KeyInput.character("r"))
 _ = context.process(KeyInput.character("k"))
 _ = context.process(KeyInput.character("r"))
 
-// 3. 조합 중인 문자 확인
-let markedText = context.getPreeditString() // "각"
+// 3. 실시간 조합 화면 출력 (화면에 "각" 표시)
+let markedText = context.getPreeditString() 
 
-// 4. 입력 확정 (커밋)
+// 4. 조합 끝! 텍스트 확정
 let committed = context.flush()
 ```
 
-### 백스페이스 및 상태 제어
-```swift
-// 백스페이스 (자소 단위 분해)
-_ = context.backspace() // "각" -> "가"
+---
 
-// 컨텍스트 초기화
-context.reset()
-```
+## 🛠 지원 자판 및 아키텍처
+
+| ID | 지원 자판 | 설명 |
+| :--- | :--- | :--- |
+| `2` | **두벌식** | 표준 QWERTY 기반 두벌식 (기본값) |
+| `3` | **세벌식 390** | 빠르고 리듬감 있는 세벌식 390 |
+| `2y` / `3y` | **옛한글 (고어)** | 제주어 및 고문서 작성을 위한 옛한글 조합 매핑 |
+
+- **`HangulBuffer` & `HangulCharacter`**: 초·중·종성의 결합 법칙(Conjoinability) 오토마타를 제어하며 완벽한 유니코드(`UCSChar`)합성을 수행합니다.
+- **크로스 플랫폼 유니코드 정규화**: 파일 이름이 깨지는 고질적인 Mac-Windows 간의 NFD/NFC 정규화 차이를 코어단에서 매끄럽게 교정합니다.
 
 ---
 
-## 아키텍처 하이라이트
-
-- **`ThreadSafeHangulInputContext`**: `OSAllocatedUnfairLock`을 래핑하여 초고속 동기화를 제공하는 엔진의 메인 인터페이스입니다.
-- **`HangulKeyboard`**: 영문 쿼티 배열을 기반으로 두벌식/세벌식 등 다양한 물리적 키 매핑을 담당합니다.
-- **`HangulBuffer` & `HangulCharacter`**: 초성, 중성, 종성의 결합 법칙(Conjoinability)과 오토마타 상태를 관리하고, 이를 유니코드(`UCSChar`)로 정밀하게 변환합니다.
-
----
-
-## 라이선스
+## ⚖️ 라이선스 (License)
 
 이 프로젝트는 **MIT 라이선스**로 배포됩니다.
 오픈소스로서 누구나 자유롭게 사용, 수정, 배포할 수 있습니다.
