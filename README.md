@@ -1,107 +1,82 @@
 # libhangul-swift
 
-Swift 6 기반의 고성능 한글 입력 엔진입니다.
-기존 C 언어 기반의 `libhangul` 로직을 현대적인 Swift 아키텍처로 재작성하여, Strict Concurrency를 완벽하게 지원하며 높은 성능과 메모리 안정성을 제공합니다.
+**Pure Swift로 구현된 고성능 한글 입력 엔진**
 
-## 주요 특징
-
-### 1. 고성능 한자 및 조합 엔진
-- **Trie 기반 한자 검색**: 기존 해시맵 구조의 한계를 극복하기 위해 Prefix Tree (Trie) 자료구조를 자체 구현하여, 접두어 검색(`matchPrefix`)에서 **O(m)** 성능을 보장합니다.
-- **스트리밍 파싱 (Streaming Load)**: 대용량 한자 사전 로딩 시 전체 파일을 메모리에 적재하지 않고 `Swift.String.enumerateLines`를 활용해 스트리밍 방식으로 파싱하여 초기 메모리 점유율을 획기적으로 낮췄습니다.
-
-### 2. 동시성과 안정성
-- **Swift 6 Strict Concurrency 완벽 대응**: 컴파일러 수준에서 데이터 경쟁(Data Race)을 방지하는 현대적인 동시성 모델 적용.
-- **스레드 안전성 (Thread Safety)**: `ThreadSafeHangulInputContext`를 통해 내부적으로 Lock 기반 동기화를 제공하여, `InputMethodKit` 환경과 같은 멀티스레드 접근에서도 안전하게 상태를 관리합니다.
-- **OSLog 통합**: 릴리즈 빌드에서 오버헤드가 거의 없는 효율적인 로깅 시스템을 구축했습니다.
-
-### 3. 유니코드 및 플랫폼 호환성
-- **유니코드 정규화**: NFC/NFD 자동 변환 및 파일명 호환 모드를 지원하여 macOS 파일 시스템과의 완벽한 호환성을 제공합니다.
-- **크로스 플랫폼 지원**: macOS뿐만 아니라 iOS, tvOS, watchOS, visionOS 등 다양한 Apple 생태계 플랫폼과 호환됩니다.
+`libhangul-swift`는 C 언어 기반의 `libhangul`을 현대적인 Swift 6 아키텍처로 완전히 재작성한 라이브러리입니다. C 라이브러리 의존성 없이 순수 Swift로 구현되어 Apple 생태계(macOS, iOS, iPadOS 등) 어디에서나 즉시 통합 가능하며, Strict Concurrency를 완벽하게 준수합니다.
 
 ---
 
-## 설치
+## 핵심 차별점
 
-Swift Package Manager를 통해 프로젝트에 추가할 수 있습니다.
+### 1. Pure Swift & 크로스 플랫폼
+외부 C/C++ 라이브러리 브릿징이나 포인터 연산 없이 **100% 순수 Swift**로 설계되었습니다. 메모리 누수나 크래시 위험이 없으며, macOS의 `InputMethodKit`뿐만 아니라 iOS 커스텀 키보드 등 어떠한 Apple 플랫폼 환경에서도 즉시 사용할 수 있습니다.
 
+### 2. 고성능 스레드 동기화 (Zero-Cost Abstraction)
+입력기 엔진은 아주 짧은 지연 시간(Low Latency)이 생명입니다. `libhangul-swift`는 Swift 6의 표준 동시성 모델에서 발생할 수 있는 비동기 오버헤드를 제거하기 위해 `OSAllocatedUnfairLock`을 도입했습니다.
+- `ThreadSafeHangulInputContext`는 데이터 경쟁(Data Race)을 완벽히 방지하면서도, **동기적(Synchronous) API**를 유지하여 `IMKInputController` 콜백 등 동기성이 강제되는 시스템 API와 완벽하게 호환됩니다.
+
+### 3. 강력한 타입 안정성 (Type Safety)
+기존 C 라이브러리의 모호한 `int` 타입 키 코드를 버리고, 명시적인 `KeyInput` 열거형을 도입했습니다.
+- `KeyInput.character("r")`: 일반 문자 입력
+- `KeyInput.keyCode(51)`: 시스템 특수 키(백스페이스 등) 입력
+컴파일러 수준에서 잘못된 키 입력 처리를 방지하고 유지보수성을 극대화했습니다.
+
+### 4. 다양한 한글 자판 지원
+표준 두벌식은 물론, 세벌식 390, 세벌식 최종, 그리고 고어(옛한글) 입력을 위한 특수 자판까지 모두 내장하고 있습니다.
+
+---
+
+## 시작하기
+
+### SPM (Swift Package Manager) 설치
 ```swift
-// Package.swift
 dependencies: [
     .package(url: "https://github.com/Meapri/libhangul-swift.git", branch: "main")
 ]
 ```
 
----
+### 기본 사용법
 
-## 기본 사용법
+안전한 멀티스레드 환경을 위해 `ThreadSafeHangulInputContext` 사용을 권장합니다.
 
-멀티스레드 환경에서는 상태 오염을 방지하기 위해 반드시 `ThreadSafeHangulInputContext`를 사용해야 합니다.
-
-### 입력 및 조합
 ```swift
 import LibHangul
 
-// 1. 컨텍스트 생성 (기본: 두벌식)
-let context = LibHangul.createThreadSafeInputContext()
+// 1. 컨텍스트 초기화 (두벌식)
+let context = LibHangul.createThreadSafeInputContext(keyboard: "2")
 
-// 2. 키 입력 처리 ('ㄱ', 'ㅏ', 'ㄴ' 입력)
-_ = context.process(Int(Character("r").asciiValue!)) 
-_ = context.process(Int(Character("k").asciiValue!))
-_ = context.process(Int(Character("s").asciiValue!))
+// 2. 키 입력 전달 (예: 'ㄱ', 'ㅏ', 'ㄱ')
+_ = context.process(KeyInput.character("r"))
+_ = context.process(KeyInput.character("k"))
+_ = context.process(KeyInput.character("r"))
 
-// 3. 현재 조합 중인 상태 확인
-let preedit = context.getPreeditString() // [0xD55C] ("한")
+// 3. 조합 중인 문자 확인
+let markedText = context.getPreeditString() // "각"
 
-// 4. 입력 확정
+// 4. 입력 확정 (커밋)
 let committed = context.flush()
 ```
 
-### 문자열 일괄 변환
+### 백스페이스 및 상태 제어
 ```swift
-let context = LibHangul.createThreadSafeInputContext()
-let result = context.processText("gksrmfdlqslek") // "한글입니다"
-```
+// 백스페이스 (자소 단위 분해)
+_ = context.backspace() // "각" -> "가"
 
-### 백스페이스 처리
-```swift
-let context = LibHangul.createThreadSafeInputContext()
-
-_ = context.process(Int(Character("r").asciiValue!)) // ㄱ
-_ = context.process(Int(Character("k").asciiValue!)) // ㅏ
-_ = context.process(Int(Character("r").asciiValue!)) // ㄱ (종성: 각)
-
-_ = context.backspace() // "각" → "가"
-_ = context.backspace() // "가" → "ㄱ"
-_ = context.backspace() // "ㄱ" → ""
+// 컨텍스트 초기화
+context.reset()
 ```
 
 ---
 
-## 지원 자판
+## 아키텍처 하이라이트
 
-| ID | 이름 | 설명 |
-| :--- | :--- | :--- |
-| `2` | **두벌식** | 표준 두벌식 자판 (기본값) |
-| `3` | **세벌식 390** | 세벌식 390 자판 |
-| `2y` | **두벌식 옛한글** | 옛한글 입력용 두벌식 |
-| `3y` | **세벌식 옛한글** | 옛한글 입력용 세벌식 |
-
----
-
-## 아키텍처 구조
-
-1. **Public API Layer**: 
-   - `ThreadSafeHangulInputContext`를 통한 동시성 제어 및 외부 인터페이스 제공.
-2. **Core Engine Layer**: 
-   - `HangulInputContext`: 입력 상태와 비즈니스 로직 관리.
-   - `HangulKeyboard`: 영문 자판 입력값을 한글 자모로 매핑.
-   - `HangulBuffer` & `HangulCharacter`: 유니코드 기반 자모 조합 처리.
-3. **Utilities Layer**: 
-   - Trie 구조의 한자 사전 변환(`Hanja`), OSLog 연동(`Logging`), 에러 처리(`HangulError`).
+- **`ThreadSafeHangulInputContext`**: `OSAllocatedUnfairLock`을 래핑하여 초고속 동기화를 제공하는 엔진의 메인 인터페이스입니다.
+- **`HangulKeyboard`**: 영문 쿼티 배열을 기반으로 두벌식/세벌식 등 다양한 물리적 키 매핑을 담당합니다.
+- **`HangulBuffer` & `HangulCharacter`**: 초성, 중성, 종성의 결합 법칙(Conjoinability)과 오토마타 상태를 관리하고, 이를 유니코드(`UCSChar`)로 정밀하게 변환합니다.
 
 ---
 
 ## 라이선스
 
-MIT License
-Copyright © 2026 PriType Team.
+이 프로젝트는 **MIT 라이선스**로 배포됩니다.
+오픈소스로서 누구나 자유롭게 사용, 수정, 배포할 수 있습니다.
