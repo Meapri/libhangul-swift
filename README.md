@@ -1,38 +1,58 @@
 # libhangul-swift
 
-기존 C 언어 기반 `libhangul`의 구조와 로직을 순수 Swift로 재구현한 한글 입력 코어 엔진입니다. 브릿징(Bridging) 및 포인터 연산을 배제하여 Apple 플랫폼(macOS, iOS, iPadOS)에서 네이티브로 안전하게 구동되도록 설계되었습니다.
+C 기반 libhangul의 조합 로직과 자료구조를 순수 Swift로 재구현한 한글 입력 코어 엔진. C/Objective-C 브릿징 없이 동작하며, SPM 패키지 추가만으로 macOS, iOS, visionOS에서 사용할 수 있다.
 
-## 핵심 아키텍처 및 특징
+## 모듈 구성
 
-### 1. Pure Swift 구현 및 호환성
-C/Objective-C 라이브러리 의존성 없이 작성되어, 패키지 추가만으로 macOS `InputMethodKit` 및 iOS 커스텀 키보드 Extension에 즉시 통합할 수 있습니다. 메모리 누수나 크래시 발생 가능성을 언어 레벨에서 차단했습니다.
+```
+Sources/LibHangul/
+├── LibHangul.swift                      # 팩토리 함수 (createInputContext 등)
+├── HangulInputContext.swift             # 조합 상태 머신 (메인 엔진)
+├── ThreadSafeHangulInputContext.swift   # OSAllocatedUnfairLock 기반 스레드 안전 래퍼
+├── HangulBuffer.swift                   # 초·중·종성 조합 버퍼
+├── HangulCharacter.swift                # 유니코드 한글 연산 (결합, 분리, 자모 변환)
+├── HangulKeyboard.swift                 # 자판 배열 매핑 (두벌식, 세벌식 등)
+├── HangulScalar.swift                   # UCSChar(UInt32) 유틸리티
+├── Hanja.swift                          # 한자 사전 파서 및 HanjaTable
+├── HanjaTrie.swift                      # Sorted Array + Binary Search Trie
+├── KeyInput.swift                       # 타입 안전 키 입력 열거형
+├── Logging.swift                        # 내부 디버그 로거
+└── Examples.swift                       # 사용 예시 코드
+```
 
-### 2. 스레드 동기화 및 성능 (OSAllocatedUnfairLock)
-입력기의 실시간(Real-time) 응답성을 보장하기 위해, 상태 관리에 `OSAllocatedUnfairLock`을 도입했습니다. 비동기(Async/Await) 컨텍스트 스위칭으로 인한 오버헤드를 방지하면서도, 멀티스레드 환경에서 발생할 수 있는 데이터 경합(Data Race)을 안전하게 제어합니다.
+### 주요 타입
 
-### 3. Trie 기반 고속 한자 검색
-전통적인 해시맵 대신 Prefix Tree(Trie) 자료구조를 적용했습니다. 접두어 기반 매칭(`matchPrefix`)을 통해 O(m)의 시간 복잡도로 수만 개의 한자 후보군을 탐색합니다. 또한 한자 DB를 메모리에 한 번에 올리지 않고 `String.enumerateLines`를 활용해 스트림 방식으로 파싱하여, 엔진 초기화에 소모되는 메모리와 시간을 최적화했습니다.
+| 타입 | 역할 |
+|---|---|
+| **`HangulInputContext`** | 한글 조합의 핵심 상태 머신. 키 입력을 받아 초·중·종성을 조합하고 preedit/commit 문자열을 생성한다. 자판 배열, 출력 모드, 버퍼 크기 등의 옵션을 관리한다. |
+| **`ThreadSafeHangulInputContext`** | `HangulInputContext`를 `OSAllocatedUnfairLock`으로 감싼 스레드 안전 래퍼. 모든 public 메서드가 동기적(synchronous)이므로 InputMethodKit의 동기 콜백에서 직접 사용할 수 있다. `@unchecked Sendable`을 채택한다. |
+| **`HangulBuffer`** | 초성·중성·종성 슬롯을 관리하는 조합 버퍼. 결합 가능 여부(Conjoinability)를 판정하고 완성형 음절을 합성한다. |
+| **`HangulCharacter`** | 유니코드 한글 블록 연산. 초·중·종성 인덱스 추출/합성, 호환 자모(Compatibility Jamo, U+3130~U+318F)와 조합 자모(U+1100~U+11FF) 간 변환, NFC/NFD 정규화를 처리한다. |
+| **`HangulKeyboard`** | 물리 키 코드를 한글 자모로 매핑하는 자판 정의. `HangulKeyboardManager`가 `"2"`, `"3"`, `"2y"`, `"3y"` 등의 ID로 관리한다. |
+| **`KeyInput`** | 키 입력을 `.character("r")`, `.keyCode(51)`, `.backspace` 형태로 표현하는 타입 안전 열거형. 정수형 키 코드 사용 시 발생하는 오류를 컴파일 타임에 방지한다. |
+| **`HanjaTable`** | 한자 사전 로더. 텍스트 파일을 `String.enumerateLines`로 스트림 파싱하여 `HanjaTrie`에 적재한다. `matchExact(key:)`와 `matchPrefix(key:)` 검색을 제공한다. |
+| **`HanjaTrie`** | Sorted Array + Binary Search 기반 Trie. 자식 노드를 `[TrieChildEntry]` 단일 배열로 관리하여 노드당 힙 할당을 절반으로 줄였다. 검색 시간 복잡도는 O(m × log k), m=키 길이, k=자식 수. |
 
-### 4. 타입 안정성 (Type-Safety) 강제
-정수형 키 코드를 사용하는 대신, `KeyInput.character("r")` 또는 `KeyInput.keyCode(51)`과 같이 명시적인 열거형 타입을 사용합니다. 입력값의 유효성을 컴파일 타임에 검증하여 오류를 방지합니다.
+## 동기화 방식
 
-### 5. 유니코드 오토마타 및 정규화
-- **`HangulBuffer` & `HangulCharacter`**: 초·중·종성 결합 법칙(Conjoinability)을 상태 머신(Automata)으로 제어하며, 완성형 및 조합형 유니코드 문자를 합성합니다.
-- **NFD/NFC 교정**: macOS와 Windows 간에 발생하는 유니코드 정규화(Normalization) 방식 차이로 인한 텍스트 깨짐 현상을 코어 레벨에서 보정합니다.
+`ThreadSafeHangulInputContext`는 `OSAllocatedUnfairLock`을 사용한다.
 
-## 지원 자판 배열
+- InputMethodKit의 `handle()`, `activateServer()` 등은 동기 반환을 요구하므로 `async/await`(Actor)를 사용할 수 없다.
+- `NSLock`보다 오버헤드가 낮고, Swift 6에서 공식 권장하는 동기화 메커니즘이다.
+- 모든 상태 변경(`process`, `flush`, `reset`, `setKeyboard`)이 lock 스코프 내에서 수행된다.
 
-| ID | 분류 | 설명 |
-| :--- | :--- | :--- |
-| `2` | **두벌식** | 표준 QWERTY 기반 두벌식 자판 (기본값) |
-| `3` | **세벌식 390** | 세벌식 390 배열 |
-| `2y` / `3y` | **옛한글** | 제주어 및 고문서 작성을 위한 옛한글 조합 매핑 |
+## 지원 자판
 
-## 시작하기
+| ID | 이름 | 설명 |
+|---|---|---|
+| `"2"` | 두벌식 표준 | QWERTY 기반 두벌식 (기본값) |
+| `"3"` | 세벌식 390 | 세벌식 390 배열 |
+| `"2y"` | 두벌식 옛한글 | 옛한글 자모 조합 |
+| `"3y"` | 세벌식 옛한글 | 옛한글 자모 조합 |
 
-### Swift Package Manager 설치
+## 설치
 
-프로젝트의 `Package.swift`에 아래 의존성을 추가합니다.
+### Swift Package Manager
 
 ```swift
 dependencies: [
@@ -40,26 +60,72 @@ dependencies: [
 ]
 ```
 
-### 사용 예시
+타깃 의존성:
+```swift
+.target(
+    name: "YourTarget",
+    dependencies: [
+        .product(name: "LibHangul", package: "libhangul-swift")
+    ]
+)
+```
+
+## 사용 예시
+
+### 기본 조합
 
 ```swift
 import LibHangul
 
-// 1. 스레드 안전 컨텍스트 활성화 (두벌식)
-let context = LibHangul.createThreadSafeInputContext(keyboard: "2")
+let context = ThreadSafeHangulInputContext(keyboard: "2")
 
-// 2. 키보드 입력 이벤트 처리 ('ㄱ', 'ㅏ', 'ㄱ')
-_ = context.process(KeyInput.character("r"))
-_ = context.process(KeyInput.character("k"))
-_ = context.process(KeyInput.character("r"))
+// 'ㄱ' + 'ㅏ' + 'ㄱ' → "각"
+context.process(Character("r"))  // ㄱ
+context.process(Character("k"))  // ㅏ → preedit: "가"
+context.process(Character("r"))  // ㄱ → preedit: "각"
 
-// 3. 현재 조합 중인 임시 문자열 반환 ("각")
-let markedText = context.getPreeditString() 
-
-// 4. 조합을 종료하고 최종 텍스트 확정
-let committedText = context.flush()
+let preedit = context.getPreeditString()   // [44033] (각)
+let committed = context.flush()            // [44033]
 ```
+
+### 한자 검색
+
+```swift
+let table = HanjaTable()
+table.load(filename: "hanja.txt")
+
+if let results = table.matchExact(key: "가") {
+    for i in 0..<results.getSize() {
+        if let entry = results.getNth(i) {
+            print("\(entry.getValue()) - \(entry.getComment())")
+            // 可 - 옳을 가
+            // 加 - 더할 가
+            // ...
+        }
+    }
+}
+```
+
+### 배치 처리
+
+```swift
+let context = ThreadSafeHangulInputContext(keyboard: "2")
+let results = context.processBatch([114, 107, 114])  // r, k, r
+// results: [HangulInputResult] - 각 키의 처리 결과와 preedit/commit 상태
+```
+
+## 플랫폼
+
+| 플랫폼 | 최소 버전 |
+|---|---|
+| macOS | 14.0 |
+| iOS | 17.0 |
+| tvOS | 17.0 |
+| watchOS | 10.0 |
+| visionOS | 1.0 |
+
+Swift 6, Strict Concurrency 모드로 컴파일된다.
 
 ## 라이선스
 
-이 프로젝트는 **MIT 라이선스**로 배포됩니다.
+MIT License
