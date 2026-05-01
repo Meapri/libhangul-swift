@@ -60,6 +60,21 @@ internal final class HangulBuffer {
         jongseongWasExtended = wasExtended
     }
 
+    /// 모아치기용: 중성만 먼저 들어온 상태에서 뒤늦게 초성이 입력되면 같은 음절로 재정렬
+    /// 예: ㅏ + ㄱ -> 가
+    internal func reorderLeadingJungseong(with choseong: UCSChar) -> Bool {
+        guard self.choseong == 0,
+              jungseong != 0,
+              jongseong == 0,
+              HangulCharacter.isChoseongConjoinable(choseong),
+              HangulCharacter.isJungseongConjoinable(jungseong) else {
+            return false
+        }
+
+        self.choseong = choseong
+        return true
+    }
+
     /// 자모를 버퍼에 추가
     /// - Parameter jamo: 추가할 자모
     /// - Returns: 성공 여부
@@ -147,6 +162,7 @@ internal final class HangulBuffer {
 
     private func pushChoseong(_ jamo: UCSChar) -> Bool {
         if choseong == 0 {
+            guard jungseong == 0 && jongseong == 0 else { return false }
             choseong = jamo
             return true
         } else if jungseong == 0 {
@@ -270,5 +286,3 @@ internal final class HangulBuffer {
         return Self.jongseongCombinations[a]?[b]
     }
 }
-
-

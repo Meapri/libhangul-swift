@@ -191,6 +191,15 @@ public final class HangulInputContext {
         processKey(.character(char))
     }
 
+    /// ASCII 키 코드 입력 처리 (레거시 편의 API)
+    /// - Parameter key: ASCII 키 코드
+    /// - Returns: 키가 처리되었으면 true
+    @discardableResult
+    public func process(_ key: Int) -> Bool {
+        guard key >= 0 && key <= Int(UInt16.max) else { return false }
+        return processKey(.keyCode(UInt16(key)))
+    }
+
     /// ASCII 키 입력 처리 (내부 메서드)
     /// - Parameter key: ASCII 키 코드
     /// - Returns: 처리 결과
@@ -281,6 +290,16 @@ public final class HangulInputContext {
         // 버퍼가 가득 찼는지 확인
         try handleBufferOverflowIfNeeded()
 
+        // 모아치기 지원: 중성이 먼저 입력된 뒤 초성이 들어오면 같은 음절로 재정렬
+        // 예: ㅏ + ㄱ = 가
+        if options.contains(.autoReorder),
+           let choseong = choseongForLeadingJungseongReorder(jamo),
+           buffer.reorderLeadingJungseong(with: choseong) {
+            updatePreeditString()
+            manageArrayCapacity()
+            return true
+        }
+
         // 음절 분리 확인 (Jongseong + Jungseong -> Next Syllable)
         if HangulCharacter.isJungseong(jamo) && buffer.jongseong != 0 {
             handleSyllableSplit(jongseong: buffer.jongseong, wasExtended: buffer.jongseongWasExtended)
@@ -296,6 +315,19 @@ public final class HangulInputContext {
             // 추가 실패 (결합 불가 등): 현재 버퍼를 커밋하고 새로 시작
             return try commitAndPushNewJamo(jamo)
         }
+    }
+
+    private func choseongForLeadingJungseongReorder(_ jamo: UCSChar) -> UCSChar? {
+        if HangulCharacter.isChoseong(jamo) {
+            return jamo
+        }
+
+        if HangulCharacter.isJongseong(jamo) {
+            let choseong = HangulCharacter.jongseongToChoseong(jamo)
+            return choseong == 0 ? nil : choseong
+        }
+
+        return nil
     }
     
     // MARK: - Private Helper Methods (Extracted for Testability)
@@ -810,4 +842,3 @@ extension HangulInputContext {
         return description.isEmpty ? "비어있음" : description
     }
 }
-

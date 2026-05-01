@@ -34,11 +34,8 @@ final class HangulInputContextTests: XCTestCase {
 
         let processed2 = inputContext.process(Int(Character("k").asciiValue!)) // ㅏ
         XCTAssertTrue(processed2)
-        // 음절이 완성되면 바로 커밋되고 버퍼가 클리어됨
-        // 실제 한글 입력기 동작을 따름
-
-        // 조합이 완료되면 커밋됨
-        let commit = inputContext.getCommitString()
+        // 조합 중인 음절은 preedit에 남아 있고 flush 시 커밋됨
+        let commit = inputContext.flush()
         XCTAssertEqual(commit.count, 1)
         if let syllable = commit.first {
             let decomposed = HangulCharacter.syllableToJamo(syllable)
@@ -134,7 +131,7 @@ final class HangulInputContextTests: XCTestCase {
         XCTAssertTrue(processed3, "종성 ㄴ 입력 성공")
 
         // 커밋된 내용 확인
-        let commit1 = inputContext.getCommitString()
+        let commit1 = inputContext.flush()
         XCTAssertEqual(commit1.count, 1) // "간"
 
         // 추가 입력 - 'f'는 0x1105(ㅁ)로 매핑됨
@@ -189,7 +186,7 @@ final class HangulInputContextTests: XCTestCase {
         let processed2 = inputContext.process(Int(Character("f").asciiValue!)) // 세벌식 ㅏ
         XCTAssertTrue(processed2, "세벌식 중성 ㅏ 입력 성공")
 
-        let commit = inputContext.getCommitString()
+        let commit = inputContext.flush()
         XCTAssertEqual(commit.count, 1)
     }
 
@@ -253,8 +250,8 @@ final class HangulInputContextTests: XCTestCase {
             XCTAssertTrue(processed, "입력 '\(input)' 처리 성공")
         }
 
-        let commit = inputContext.getCommitString()
-        // "가"가 커밋되어야 함
+        let commit = inputContext.flush()
+        // "가"가 flush되어야 함
         XCTAssertGreaterThan(commit.count, 0, "커밋된 내용이 있어야 함")
     }
 }

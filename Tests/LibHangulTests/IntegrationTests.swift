@@ -28,7 +28,7 @@ class IntegrationTests: XCTestCase {
         let result1 = context.process(Int(Character("r").asciiValue!))
         let result2 = context.process(Int(Character("k").asciiValue!))
 
-        let committed = context.getCommitString()
+        let committed = context.flush()
         let text = String(committed.compactMap { UnicodeScalar($0) }.map { Character($0) })
 
         XCTAssertTrue(result1, "초성 'r' 입력 성공")
@@ -75,15 +75,16 @@ class IntegrationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(text.count, 0, "텍스트 생성 확인")
     }
 
-    // 3. 영어 입력 테스트
-    func testEnglishInput() {
-        // "hello" 입력
-        let results = "hello".map { context.process(Int($0.asciiValue!)) }
+    // 3. 미매핑 ASCII 입력 테스트
+    func testUnmappedASCIIInput() {
+        // 한글 자판에 매핑되지 않은 문자는 그대로 커밋됨
+        let input = "!@#$"
+        let results = input.map { context.process(Int($0.asciiValue!)) }
         let committed = context.getCommitString()
         let text = String(committed.compactMap { UnicodeScalar($0) }.map { Character($0) })
 
-        XCTAssertTrue(results.allSatisfy { $0 }, "모든 영어 문자 입력 성공")
-        XCTAssertEqual(text, "hello", "영어 문자열 올바르게 처리")
+        XCTAssertTrue(results.allSatisfy { $0 }, "모든 미매핑 ASCII 문자 입력 성공")
+        XCTAssertEqual(text, input, "미매핑 ASCII 문자열 올바르게 처리")
     }
 
     // 4. 백스페이스 테스트

@@ -105,6 +105,15 @@ public final class ThreadSafeHangulInputContext: @unchecked Sendable {
         processKey(.character(char))
     }
 
+    /// ASCII 키 코드 입력 처리 (레거시 편의 API)
+    /// - Parameter key: ASCII 키 코드
+    /// - Returns: 키가 처리되었으면 true
+    @discardableResult
+    public func process(_ key: Int) -> Bool {
+        guard key >= 0 && key <= Int(UInt16.max) else { return false }
+        return processKey(.keyCode(UInt16(key)))
+    }
+
     /// 백스페이스 처리
     /// - Returns: 처리되었으면 true
     public func backspace() -> Bool {

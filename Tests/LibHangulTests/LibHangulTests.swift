@@ -115,9 +115,9 @@ final class LibHangulTests: XCTestCase {
         let result1 = context.processText("rk") // ㄱ + ㅏ = "가"
         XCTAssertEqual(result1, "가")
 
-        // 한글 + 영어 혼합
-        let result2 = context.processText("rka") // ㄱ + ㅏ + a = "가a"
-        XCTAssertEqual(result2, "가a")
+        // 연속 한글 입력
+        let result2 = context.processText("rka") // ㄱ + ㅏ + ㅁ = "감"
+        XCTAssertEqual(result2, "감")
 
         // 종성 포함
         let result3 = context.processText("rks") // ㄱ + ㅏ + ㄴ = "간"
@@ -188,8 +188,7 @@ final class LibHangulTests: XCTestCase {
 
         // 혼합
         let mixedResult = context.processText("rk!a") // ㄱ + ㅏ + ! + a
-        // "가!a"가 될 것으로 예상
         XCTAssertTrue(mixedResult.contains("!"))
-        XCTAssertTrue(mixedResult.contains("a"))
+        XCTAssertTrue(mixedResult.contains("ㅁ"))
     }
 }

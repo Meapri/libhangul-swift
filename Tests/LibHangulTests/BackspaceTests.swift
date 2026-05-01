@@ -47,6 +47,16 @@ final class BackspaceTests: XCTestCase {
         let result = inputContext.getPreeditString()
         XCTAssertEqual(result, "ㄱ")
     }
+
+    func testBackspaceMoachigiSyllable() {
+        // ㅏ + ㄱ = 가 -> ㄱ
+        processInput("kr")
+
+        _ = inputContext.backspace()
+
+        let result = inputContext.getPreeditString()
+        XCTAssertEqual(result, "ㄱ")
+    }
     
     func testBackspaceChoseong() {
         // ㄱ -> (empty)

@@ -35,6 +35,30 @@ final class BasicCompositionTests: XCTestCase {
         let result = inputContext.getCommitString() + inputContext.flush()
         XCTAssertEqual(result, expected)
     }
+
+    func testMoachigiVowelFirstCv() {
+        // ㅏ + ㄱ = 가
+        let inputs = ["k", "r"]
+        let expected = "가"
+
+        for key in inputs {
+            let charCode = Int(Character(key).asciiValue!)
+            _ = inputContext.process(charCode)
+        }
+
+        let result = inputContext.getCommitString() + inputContext.flush()
+        XCTAssertEqual(result, expected)
+    }
+
+    func testMoachigiCanBeDisabled() {
+        inputContext.setOption(.autoReorder, value: false)
+
+        _ = inputContext.process(Int(Character("k").asciiValue!))
+        _ = inputContext.process(Int(Character("r").asciiValue!))
+
+        let result = inputContext.getCommitString() + inputContext.flush()
+        XCTAssertNotEqual(result, "가")
+    }
     
     func testSimpleCvc() {
         // ㄱ + ㅏ + ㄱ = 각
