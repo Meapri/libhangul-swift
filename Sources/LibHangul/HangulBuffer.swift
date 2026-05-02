@@ -94,26 +94,31 @@ internal final class HangulBuffer {
 
     /// 마지막 자모를 제거하고 반환
     /// - Returns: 제거된 자모, 없으면 0
-    internal func pop() -> UCSChar {
+    internal func pop(fineGrained: Bool = true) -> UCSChar {
         // 스택 제거됨, 오직 현재 음절 내에서만 pop
 
         if jongseong != 0 {
             // 복합 종성 분해 시도
-            let (first, second) = HangulCharacter.decomposeJongseong(jongseong)
-            if second != 0 {
-                jongseong = first
-                return second
+            if fineGrained {
+                let (first, second) = HangulCharacter.decomposeJongseong(jongseong)
+                if second != 0 {
+                    jongseong = first
+                    return second
+                }
             }
             
             let result = jongseong
             jongseong = 0
+            jongseongWasExtended = false
             return result
         } else if jungseong != 0 {
             // 복합 중성 분해 시도
-            let (first, second) = HangulCharacter.decomposeJungseong(jungseong)
-            if second != 0 {
-                jungseong = first
-                return second
+            if fineGrained {
+                let (first, second) = HangulCharacter.decomposeJungseong(jungseong)
+                if second != 0 {
+                    jungseong = first
+                    return second
+                }
             }
 
             let result = jungseong

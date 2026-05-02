@@ -87,6 +87,35 @@ final class BackspaceTests: XCTestCase {
         let result = inputContext.getPreeditString()
         XCTAssertEqual(result, "오")
     }
+
+    func testBackspaceCompositeVowelIsFineGrainedByDefault() {
+        // 몌 -> 며 when fine-grained backspace is enabled
+        processInput("aul") // ㅁ ㅕ ㅣ = 몌
+
+        _ = inputContext.backspace()
+
+        XCTAssertEqual(inputContext.getPreeditString(), "며")
+    }
+
+    func testBackspaceCompositeVowelRemovesWholeVowelWhenFineGrainedDisabled() {
+        // 몌 -> ㅁ when fine-grained backspace is disabled
+        inputContext.setOption(.fineGrainedBackspace, value: false)
+        processInput("aul") // ㅁ ㅕ ㅣ = 몌
+
+        _ = inputContext.backspace()
+
+        XCTAssertEqual(inputContext.getPreeditString(), "ㅁ")
+    }
+
+    func testBackspaceCompositeJongseongRemovesWholeJongseongWhenFineGrainedDisabled() {
+        // 닭 -> 다 when fine-grained backspace is disabled
+        inputContext.setOption(.fineGrainedBackspace, value: false)
+        processInput("ekfr") // ㄷ ㅏ ㄹ ㄱ = 닭
+
+        _ = inputContext.backspace()
+
+        XCTAssertEqual(inputContext.getPreeditString(), "다")
+    }
     
     func testBackspaceSyllableBoundary() {
         // 가나 -> 간

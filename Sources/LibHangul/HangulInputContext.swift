@@ -15,6 +15,7 @@ public enum HangulInputContextOption: Int, Sendable {
     case autoReorder = 0              // 자동 재정렬
     case combinationOnDoubleStroke = 1 // 두 번 입력시 결합
     case nonChoseongCombination = 2    // 초성 결합 허용
+    case fineGrainedBackspace = 3      // 복합 자모를 한 단계씩 세밀하게 삭제
 }
 
 /// 출력 모드
@@ -75,7 +76,7 @@ public final class HangulInputContext {
     public private(set) var outputMode: HangulOutputMode = .syllable
 
     /// 옵션 설정
-    private var options: Set<HangulInputContextOption> = [.autoReorder]
+    private var options: Set<HangulInputContextOption> = [.autoReorder, .fineGrainedBackspace]
 
     /// 라이브러리 설정
     public private(set) var configuration: HangulInputConfiguration
@@ -404,7 +405,9 @@ public final class HangulInputContext {
     public func backspace() -> Bool {
         // 1. 먼저 버퍼에서 제거 시도
         if !buffer.isEmpty {
-            let removed = buffer.pop()
+            let removed = buffer.pop(
+                fineGrained: options.contains(.fineGrainedBackspace)
+            )
             if removed != 0 {
                 updatePreeditString()
                 return true
