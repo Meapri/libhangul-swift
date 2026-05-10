@@ -51,41 +51,16 @@ final class HangulInputContextTests: XCTestCase {
         XCTAssertTrue(processed1, "초성 ㄱ 입력 성공")
         let processed2 = inputContext.process(Int(Character("k").asciiValue!)) // ㅏ
         XCTAssertTrue(processed2, "중성 ㅏ 입력 성공")
-        // T 키 매핑 확인
-        if let keyboard = inputContext.keyboard {
-            let t_key = Int(Character("T").asciiValue!)
-            let mapped = keyboard.mapKey(t_key)
-            print("DEBUG: T key (\(t_key)) mapped to 0x\(String(format: "%04X", mapped))")
-        }
-        let processed3 = inputContext.process(Int(Character("T").asciiValue!)) // ㄴ (종성)
-        // T 키가 실제로 어떻게 매핑되는지 확인 후 조정
-        let commitBeforeT = inputContext.getCommitString()
-        print("DEBUG: commit before T key = \(commitBeforeT)")
-        if !processed3 {
-            print("WARNING: T key processing failed, checking actual mapping")
-        }
+        let processed3 = inputContext.process(Int(Character("s").asciiValue!)) // ㄴ
+        XCTAssertTrue(processed3, "종성 ㄴ 입력 성공")
 
-        let commit = inputContext.getCommitString()
-        print("DEBUG: commit.count = \(commit.count), commit = \(commit.map { String(format: "0x%04X", $0) })")
-        // T 키 입력 후에는 새로운 음절이 커밋되어야 함
-        // 실제 구현에 따라 다를 수 있으므로 유연하게 검증
-        if commit.count >= 1 {
-            if let syllable = commit.first {
-                let decomposed = HangulCharacter.syllableToJamo(syllable)
-                print("DEBUG: decomposed - choseong: 0x\(String(format: "%04X", decomposed.choseong)), jungseong: 0x\(String(format: "%04X", decomposed.jungseong)), jongseong: 0x\(String(format: "%04X", decomposed.jongseong))")
-                // 초성과 중성은 올바르게 유지되어야 함
-                if decomposed.choseong != 0 {
-                    XCTAssertEqual(decomposed.choseong, 0x1100) // ㄱ
-                }
-                if decomposed.jungseong != 0 {
-                    XCTAssertEqual(decomposed.jungseong, 0x1161) // ㅏ
-                }
-                // 종성이 추가되었는지 확인 (있을 수도 없을 수도 있음)
-                if decomposed.jongseong != 0 {
-                    print("DEBUG: jongseong found: 0x\(String(format: "%04X", decomposed.jongseong))")
-                }
-            }
-        }
+        let commit = inputContext.flush()
+        XCTAssertEqual(commit.count, 1)
+
+        let decomposed = HangulCharacter.syllableToJamo(commit[0])
+        XCTAssertEqual(decomposed.choseong, 0x1100) // ㄱ
+        XCTAssertEqual(decomposed.jungseong, 0x1161) // ㅏ
+        XCTAssertEqual(decomposed.jongseong, 0x11AB) // ㄴ
     }
 
     func testEnglishInput() {
@@ -136,10 +111,7 @@ final class HangulInputContextTests: XCTestCase {
 
         // 추가 입력 - 'f'는 0x1105(ㅁ)로 매핑됨
         let processed4 = inputContext.process(Int(Character("f").asciiValue!)) // ㅁ
-        // 일단 입력이 처리되기만 하면 성공으로 간주 (구현에 따라 다를 수 있음)
-        if !processed4 {
-            print("WARNING: 'f' key processing failed, this might be due to keyboard mapping issues")
-        }
+        XCTAssertTrue(processed4, "초성 ㄹ 입력 성공")
 
         // 리셋
         inputContext.reset()
@@ -163,7 +135,6 @@ final class HangulInputContextTests: XCTestCase {
         let processed2 = inputContext.process(Int(Character("k").asciiValue!)) // ㅏ
         XCTAssertTrue(processed2, "중성 ㅏ 입력 성공")
         preedit = inputContext.getPreeditString()
-        print("DEBUG: preedit after 'k' = \(preedit)")
         // 음절 모드에서는 완성된 음절이 표시되거나 빈 배열일 수 있음
         if inputContext.outputMode == .syllable {
             // 완성된 음절이 있거나 빈 배열일 수 있음
@@ -199,16 +170,9 @@ final class HangulInputContextTests: XCTestCase {
         let processed2 = inputContext.process(Int(Character("k").asciiValue!)) // ㅏ
         XCTAssertTrue(processed2, "자모 모드 중성 ㅏ 입력 성공")
 
-        let commit = inputContext.getCommitString()
-        // 자모 모드에서는 개별 자모가 커밋되어야 함
-        print("DEBUG: commit.count = \(commit.count), commit = \(commit.map { String(format: "0x%04X", $0) })")
-        if commit.count >= 2 {
-            XCTAssertEqual(commit[0], 0x1100) // ㄱ
-            XCTAssertEqual(commit[1], 0x1161) // ㅏ
-        } else {
-            // 일단 크기만 확인 (세그멘테이션 방지)
-            print("DEBUG: commit array is too small: \(commit.count)")
-        }
+        let flushed = inputContext.flush()
+        // 현재 flush 경로는 NFC 음절로 확정된다.
+        XCTAssertEqual(flushed, [0xAC00]) // 가
     }
 
     func testOptions() {
@@ -229,12 +193,10 @@ final class HangulInputContextTests: XCTestCase {
         XCTAssertTrue(processed3, "종성 ㄴ 입력 성공")
 
         let flushed = inputContext.flush()
-        print("DEBUG: flushed = \(flushed)")
         XCTAssertEqual(flushed.count, 1) // "간"
 
         // 플러시 후에는 비어있어야 함
         let remaining = inputContext.getCommitString()
-        print("DEBUG: remaining after flush = \(remaining)")
         // flush 후에는 비어있거나 최소한 이전보다 적은 내용이 있어야 함
         XCTAssertLessThanOrEqual(remaining.count, flushed.count)
     }

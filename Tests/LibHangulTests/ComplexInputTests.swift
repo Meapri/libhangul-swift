@@ -63,9 +63,7 @@ final class ComplexInputTests: XCTestCase {
 
         for (keys, expectedChoseong, expectedJungseong, expectedJongseong) in testCases {
             inputContext.reset()
-            
-            print("Testing combination: \(keys)")
-            
+
             for key in keys {
                 let charCode = Int(Character(key).asciiValue!)
                 _ = inputContext.process(charCode)
