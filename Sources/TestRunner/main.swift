@@ -1,6 +1,23 @@
 import Foundation
 import LibHangul
 
+final class LockedCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = 0
+
+    func increment() {
+        lock.lock()
+        value += 1
+        lock.unlock()
+    }
+
+    var count: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+}
+
 // Simple assertion helper
 func assertEquals<T: Equatable>(_ actual: T, _ expected: T, _ message: String, file: String = #file, line: Int = #line) {
     if actual != expected {
@@ -543,11 +560,10 @@ class TestRunner {
         let group = DispatchGroup()
         let queue = DispatchQueue(label: "test.concurrent", attributes: .concurrent)
         
-        var successCount = 0
-        let lock = NSLock()
+        let successCount = LockedCounter()
         
         // 동시에 여러 스레드에서 process 호출
-        for i in 0..<iterations {
+        for _ in 0..<iterations {
             group.enter()
             queue.async {
                 let keys = ["r", "k", "s", "k"] // 간단한 한글 입력
@@ -556,9 +572,7 @@ class TestRunner {
                 }
                 _ = context.flush()
                 
-                lock.lock()
-                successCount += 1
-                lock.unlock()
+                successCount.increment()
                 
                 group.leave()
             }
@@ -566,10 +580,10 @@ class TestRunner {
         
         group.wait()
         
-        if successCount == iterations {
+        if successCount.count == iterations {
             print("✅ PASSED: Concurrent Processing (\(iterations) iterations)")
         } else {
-            print("❌ FAILED: Concurrent Processing - only \(successCount)/\(iterations) succeeded")
+            print("❌ FAILED: Concurrent Processing - only \(successCount.count)/\(iterations) succeeded")
         }
     }
     
@@ -582,8 +596,7 @@ class TestRunner {
         let _: Bool = context.process(Character("r"))
         let _: Bool = context.process(Character("k"))
         
-        var flushCount = 0
-        let lock = NSLock()
+        let flushCount = LockedCounter()
         
         // 동시에 flush 호출 - 하나만 실제 데이터를 가져야 함
         for _ in 0..<10 {
@@ -591,9 +604,7 @@ class TestRunner {
             queue.async {
                 let result = context.flush()
                 if !result.isEmpty {
-                    lock.lock()
-                    flushCount += 1
-                    lock.unlock()
+                    flushCount.increment()
                 }
                 group.leave()
             }
@@ -603,10 +614,10 @@ class TestRunner {
         
         // 정확히 1개만 데이터를 받아야 함 (나머지는 빈 배열)
         // 또는 이미 첫 번째가 모두 가져갔거나
-        if flushCount <= 1 {
+        if flushCount.count <= 1 {
             print("✅ PASSED: Concurrent Flush (no data race)")
         } else {
-            print("⚠️ WARNING: Concurrent Flush - multiple flushes returned data: \(flushCount)")
+            print("⚠️ WARNING: Concurrent Flush - multiple flushes returned data: \(flushCount.count)")
         }
     }
     
@@ -697,4 +708,3 @@ runner.runAll()
 // Run Refinement Tests
 let refinementRunner = RefinementTestRunner()
 refinementRunner.run()
-

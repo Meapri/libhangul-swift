@@ -32,6 +32,10 @@ let package = Package(
             name: "demo",
             dependencies: ["LibHangul"],
             path: "Examples",
+            exclude: [
+                "HybridSolutionDemo.swift",
+                "hanja-demo.swift"
+            ],
             sources: ["demo.swift"],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")

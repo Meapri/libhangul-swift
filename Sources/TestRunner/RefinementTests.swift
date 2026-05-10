@@ -43,7 +43,7 @@ class RefinementTestRunner {
          let opsPerThread = 1000
          let group = DispatchGroup()
          
-         for t in 0..<threadCount {
+         for _ in 0..<threadCount {
              group.enter()
              DispatchQueue.global().async {
                  for _ in 0..<opsPerThread {
