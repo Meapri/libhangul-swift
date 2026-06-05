@@ -46,7 +46,7 @@ Sources/LibHangul/
 
 ## 지원 자판
 
-자판 배열과 자모 결합 규칙은 `data/keyboards/*.xml`(libhangul 호환)에서 로드되며, SPM 리소스로 번들되어 의존성으로 사용할 때도 `Bundle.module`에서 읽는다.
+자판 배열과 자모 결합 규칙은 `Sources/LibHangul/Resources/keyboards/*.xml`(libhangul 호환)에서 로드된다. 이 디렉터리가 자판 데이터의 단일 출처이며, SPM 리소스로 번들되어 의존성으로 사용할 때도 `Bundle.module`에서 읽는다.
 
 | ID | 이름 | 타입 | 설명 |
 |---|---|---|---|
@@ -57,7 +57,7 @@ Sources/LibHangul/
 | `"32"` | 세벌식 두벌 배열 | jaso | 데이터 기반 |
 | `"3s"` | 세벌식 순아래 | jaso | 데이터 기반 |
 | `"ahn"` | 안마태 | jaso | 데이터 기반 |
-| `"ro"` | 로마자 | romaja | 단일 글자 매핑(기본). 다중 글자 처리는 미구현 |
+| `"ro"` | 로마자 | romaja | 다중 글자 로마자 처리 (예: `annyeonghaseyo`→안녕하세요) |
 | `"2y"` | 두벌식 옛한글 | jamo-yet | 옛한글 자모 조합 지원 (full 결합 규칙) |
 | `"3y"` | 세벌식 옛한글 | jaso-yet | 옛한글 자모 조합 지원 (full 결합 규칙) |
 
@@ -69,7 +69,14 @@ yet.process(Character("r"))   // ㄱ
 yet.process(Character("e"))   // ㄷ → 초성 클러스터 ᄓ (U+115A)
 ```
 
-> **로마자(`"ro"`) 한계:** 현재 단일 글자→자모 매핑만 동작하며, "eo"→ㅓ, "gg"→ㄲ 같은 다중 글자 로마자 처리는 미구현이다.
+로마자(`"ro"`)는 libhangul의 `hangul_ic_process_romaja`를 이식해, 모음 결합("eo"→ㅓ), 된소리("gg"→ㄲ), ㅇ 자동 삽입("a"→아), 받침 처리를 지원한다.
+
+```swift
+let ro = HangulInputContext(keyboard: "ro")
+print(ro.processText("annyeonghaseyo")) // 안녕하세요
+```
+
+> **로마자 모호성:** `ng`는 받침 ㅇ으로 합쳐지므로(`annyeong`→안녕) "hangug"은 한국이 아니라 "항욱"이 된다. 이는 libhangul 로마자 자판의 본질적 동작이다.
 
 ## 입력 옵션
 

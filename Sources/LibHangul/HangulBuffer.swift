@@ -73,6 +73,36 @@ internal final class HangulBuffer {
         jongseongWasExtended = wasExtended
     }
 
+    /// 초성을 직접 설정 (로마자 처리용)
+    internal func setChoseong(_ value: UCSChar) {
+        choseong = value
+    }
+
+    /// 중성을 직접 설정 (로마자 처리용)
+    internal func setJungseong(_ value: UCSChar) {
+        jungseong = value
+    }
+
+    /// 자모를 해당 슬롯에 결합 없이 그대로 배치한다 (libhangul hangul_buffer_push 대응).
+    /// 로마자 처리에서 결합은 호출부가 직접 수행하므로, 버퍼는 슬롯 덮어쓰기만 한다.
+    /// - Parameter jamo: 배치할 자모
+    /// - Returns: 자모로 인식되어 배치되면 true
+    @discardableResult
+    internal func overwritePush(_ jamo: UCSChar) -> Bool {
+        if HangulCharacter.isChoseong(jamo) {
+            choseong = jamo
+        } else if HangulCharacter.isJungseong(jamo) {
+            jungseong = jamo
+        } else if HangulCharacter.isJongseong(jamo) {
+            jongseong = jamo
+            // 결합으로 만들어진 복합 종성인지 표시 (음절 분리 시 사용)
+            jongseongWasExtended = HangulCharacter.decomposeJongseong(jamo).1 != 0
+        } else {
+            return false
+        }
+        return true
+    }
+
     /// 모아치기용: 중성만 먼저 들어온 상태에서 뒤늦게 초성이 입력되면 같은 음절로 재정렬
     /// 예: ㅏ + ㄱ -> 가
     internal func reorderLeadingJungseong(with choseong: UCSChar) -> Bool {

@@ -86,6 +86,33 @@ final class KeyboardLoadingTests: XCTestCase {
         XCTAssertEqual(fullOutputScalars(HangulInputContext(keyboard: "3y"), "kG"), [0x1100, 0x119E])
     }
 
+    // MARK: - 로마자 (다중 글자 처리)
+
+    func testRomajaBasicSyllables() {
+        func ro(_ s: String) -> String { fullOutput(HangulInputContext(keyboard: "ro"), s) }
+        XCTAssertEqual(ro("ga"), "가")
+        XCTAssertEqual(ro("gan"), "간")
+        XCTAssertEqual(ro("han"), "한")
+        XCTAssertEqual(ro("a"), "아")          // ㅇ 자동 삽입
+        XCTAssertEqual(ro("eo"), "어")          // 모음 결합 e+o→ㅓ
+        XCTAssertEqual(ro("gga"), "까")         // 된소리 g+g→ㄲ
+        XCTAssertEqual(ro("gwa"), "과")         // 이중모음 w+a→ㅘ
+    }
+
+    func testRomajaSentences() {
+        func ro(_ s: String) -> String { fullOutput(HangulInputContext(keyboard: "ro"), s) }
+        XCTAssertEqual(ro("seoul"), "서울")
+        XCTAssertEqual(ro("annyeong"), "안녕")
+        XCTAssertEqual(ro("annyeonghaseyo"), "안녕하세요")
+        XCTAssertEqual(ro("gamsahabnida"), "감사합니다")
+    }
+
+    func testRomajaNgRule() {
+        // ng → 받침 ㅇ (libhangul 로마자의 본질적 동작): hangug → 항욱
+        func ro(_ s: String) -> String { fullOutput(HangulInputContext(keyboard: "ro"), s) }
+        XCTAssertEqual(ro("hangug"), "항욱")
+    }
+
     // MARK: - 회귀: 레거시 "2"는 옛한글 클러스터를 만들지 않는다
 
     func testLegacyDubeolsikNoCluster() {
