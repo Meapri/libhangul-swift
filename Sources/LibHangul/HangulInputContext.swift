@@ -83,6 +83,10 @@ public final class HangulInputContext {
     /// 옵션 설정
     private var options: Set<HangulInputContextOption> = [.autoReorder, .fineGrainedBackspace]
 
+    /// 옛한글 모드: 완성형으로 합성할 수 없는 음절을 조합용 자모(U+1100~)로 출력한다.
+    /// (현대 자판은 미완성 음절을 호환 자모로 출력)
+    private var producesConjoiningJamo: Bool = false
+
     /// 라이브러리 설정
     public private(set) var configuration: HangulInputConfiguration
 
@@ -144,6 +148,7 @@ public final class HangulInputContext {
         self.keyboardManager = keyboardManager
         self.buffer = HangulBuffer(maxStackSize: configuration.maxBufferSize)
         self.keyboard = keyboard
+        applyKeyboardToBuffer()
         setOutputMode(configuration.outputMode)
     }
 
@@ -534,12 +539,23 @@ public final class HangulInputContext {
     /// - Parameter keyboard: 키보드 식별자
     public func setKeyboard(with identifier: String) {
         keyboard = keyboardManager.keyboard(for: identifier)
+        applyKeyboardToBuffer()
     }
 
     /// 키보드 설정
     /// - Parameter keyboard: 키보드 객체
     public func setKeyboard(_ keyboard: HangulKeyboard) {
         self.keyboard = keyboard
+        applyKeyboardToBuffer()
+    }
+
+    /// 현재 키보드의 결합 규칙과 옛한글 설정을 버퍼/출력 정책에 반영한다.
+    private func applyKeyboardToBuffer() {
+        let isOldHangul = keyboard?.type.isOldHangul ?? false
+        buffer.combination = keyboard?.combination
+        buffer.allowNonChoseongCombination = isOldHangul || options.contains(.nonChoseongCombination)
+        // 옛한글은 완성형으로 합성되지 않는 음절을 조합용 자모(U+1100~)로 출력한다.
+        producesConjoiningJamo = isOldHangul
     }
 
     /// 출력 모드 설정
@@ -561,6 +577,11 @@ public final class HangulInputContext {
         // 버퍼 내부 동작에 영향을 주는 옵션은 버퍼에 반영한다
         if option == .combinationOnDoubleStroke {
             buffer.combineOnDoubleStroke = value
+        }
+        if option == .nonChoseongCombination {
+            // 옛한글 자판은 항상 허용하고, 옵션으로 추가 활성화할 수 있다
+            let isOldHangul = keyboard?.type.isOldHangul ?? false
+            buffer.allowNonChoseongCombination = isOldHangul || value
         }
     }
 
@@ -655,12 +676,16 @@ public final class HangulInputContext {
                 if syllable != 0 {
                     result.append(syllable)
                 } else {
-                    // 완성되지 않은 음절 처리 - 자모를 호환 자모로 변환하여 출력
+                    // 완성형으로 합성되지 않는 음절 처리
                     let jamos = buffer.getJamoString()
-                    for jamo in jamos {
-                        // 초성/중성/종성을 호환 자모로 변환
-                        let compatJamo = HangulCharacter.jamoToCJamo(jamo)
-                        result.append(compatJamo)
+                    if producesConjoiningJamo {
+                        // 옛한글: 조합용 자모(U+1100~)를 그대로 출력 (NFC가 현대 부분만 합성)
+                        result.append(contentsOf: jamos)
+                    } else {
+                        // 현대 자판의 미완성 음절: 호환 자모로 변환하여 출력
+                        for jamo in jamos {
+                            result.append(HangulCharacter.jamoToCJamo(jamo))
+                        }
                     }
                 }
             } else {

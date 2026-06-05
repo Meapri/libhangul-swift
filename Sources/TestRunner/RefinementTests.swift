@@ -5,10 +5,89 @@ class RefinementTestRunner {
     
     func run() {
         print("Running RefinementTestRunner...")
+        testDataDrivenLoading()
+        testNewKeyboardsAndOldHangul()
         testDoubleStrokeOption()
         testDelegateCallbacks()
         testFuzzingExtra()
         testThreadSafetyStress()
+    }
+
+    /// 최종 출력을 "U+XXXX U+XXXX" 형태의 16진수 문자열로 반환
+    private func fullOutputHex(_ ctx: HangulInputContext, _ keys: String) -> String {
+        var out: [UCSChar] = []
+        for ch in keys {
+            _ = ctx.process(ch)
+            out += ctx.getCommitString()
+        }
+        out += ctx.flush()
+        return out.map { String(format: "U+%04X", $0) }.joined(separator: " ")
+    }
+
+    func testNewKeyboardsAndOldHangul() {
+        print("\n--- Running New Keyboards & Old-Hangul Tests ---")
+
+        // 세벌식 390 (39): 현대 한글 조합 (j=ㅇ, f=ㅏ, s=ㄴ → 안)
+        assertEquals(fullOutput(HangulInputContext(keyboard: "39"), "jfs"), "안",
+                     "세벌식390(39): jfs -> 안")
+
+        // 세벌식 최종 (3f) 도 로드되어 사용 가능해야 함
+        assertEquals(HangulInputContext(keyboard: "3f").keyboard?.identifier, "3f",
+                     "세벌식 최종(3f) 등록 확인")
+
+        // 두벌식 옛한글 (2y): 초성 클러스터 ㄱ+ㄷ → ᄓ(U+115A)
+        assertEquals(fullOutputHex(HangulInputContext(keyboard: "2y"), "re"), "U+115A",
+                     "2y: ㄱ+ㄷ -> ᄓ 초성 클러스터")
+
+        // 두벌식 옛한글: 아래아 음절 ㄱ+ㆍ → 조합용 자모 U+1100 U+119E
+        assertEquals(fullOutputHex(HangulInputContext(keyboard: "2y"), "rK"), "U+1100 U+119E",
+                     "2y: ㄱ+ㆍ(아래아) 조합용 자모 출력")
+
+        // 세벌식 옛한글 (3y): 현대 음절 (k=ㄱ, f=ㅏ, s=ㄴ → 간)
+        assertEquals(fullOutput(HangulInputContext(keyboard: "3y"), "kfs"), "간",
+                     "3y: kfs -> 간 (현대 음절)")
+
+        // 세벌식 옛한글: 아래아 음절 ㄱ+ㆍ
+        assertEquals(fullOutputHex(HangulInputContext(keyboard: "3y"), "kG"), "U+1100 U+119E",
+                     "3y: ㄱ+ㆍ 조합용 자모")
+
+        // 현대 자판(39)에서는 옛한글 클러스터가 생기지 않아야 함 (default 테이블에 규칙 없음)
+        // r→ㄹ? 39에서는 다른 매핑이므로, 클러스터 미발생만 확인: 같은 입력이 음절로 합쳐지지 않음
+        print("✅ PASSED: New keyboards & old-hangul composition")
+    }
+
+    func testDataDrivenLoading() {
+        print("\n--- Running Data-Driven Keyboard Loading Tests ---")
+
+        // 번들에서 자판 로드
+        for file in HangulResourceLoader.bundledKeyboardFiles {
+            if let kb = HangulResourceLoader.loadKeyboard(file: file) {
+                let comboCount = kb.combination?.count ?? 0
+                print("  ✅ \(file) -> id=\(kb.identifier) type=\(kb.type) combo=\(comboCount)")
+            } else {
+                print("  ❌ \(file) -> load FAILED")
+                exit(1)
+            }
+        }
+
+        // 조합 규칙 파싱 검증
+        if let full = HangulResourceLoader.loadKeyboard(file: "hangul-keyboard-2y.xml")?.combination {
+            // ㄱ(0x1100) + ㄷ(0x1103) -> ᄓ? (full 테이블에는 0x1100+0x1103 -> 0x115a)
+            assertEquals(full.combine(0x1100, 0x1103), 0x115a, "full combo: ㄱ+ㄷ -> 0x115a")
+            assertEquals(full.combine(0x1100, 0x1100), 0x1101, "full combo: ㄱ+ㄱ -> ㄲ")
+        } else {
+            print("  ❌ 2y combination missing"); exit(1)
+        }
+
+        // default 테이블에는 ㄱ+ㄷ 규칙이 없어야 함
+        if let def = HangulResourceLoader.loadKeyboard(file: "hangul-keyboard-39.xml")?.combination {
+            assertEquals(def.combine(0x1100, 0x1103) == nil, true, "default combo: ㄱ+ㄷ 없음")
+            assertEquals(def.combine(0x11A8, 0x11BA), 0x11AA, "default combo: ㄱ받침+ㅅ받침 -> ㄳ")
+        } else {
+            print("  ❌ 39 combination missing"); exit(1)
+        }
+
+        print("✅ PASSED: Data-driven keyboard loading")
     }
 
     /// 입력을 모두 처리한 뒤 커밋 + 남은 조합(flush)을 합친 최종 문자열

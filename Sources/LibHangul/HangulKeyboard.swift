@@ -44,11 +44,26 @@ public class HangulKeyboard {
     /// 키 매핑 테이블 (ASCII -> 자모)
     internal var keyMap: [Int: UCSChar] = [:]
 
+    /// 이 자판에 연결된 자모 결합 규칙 (XML `<include>`에서 로드).
+    /// nil이면 버퍼의 내장(하드코딩) 결합 규칙을 사용한다.
+    public internal(set) var combination: HangulCombination? = nil
+
     public init(identifier: String, name: String, type: HangulKeyboardType = .jaso) {
         self.identifier = identifier
         self.name = name
         self.type = type
         setupDefaultMappings()
+    }
+
+    /// 키맵을 직접 주입하는 초기화 (XML 로딩용).
+    /// 기본 두벌식 매핑을 설정하지 않고, 전달된 keyMap만 사용한다.
+    public init(identifier: String, name: String, type: HangulKeyboardType,
+                keyMap: [Int: UCSChar], combination: HangulCombination? = nil) {
+        self.identifier = identifier
+        self.name = name
+        self.type = type
+        self.keyMap = keyMap
+        self.combination = combination
     }
 
     /// 키 코드를 자모로 변환
@@ -254,34 +269,18 @@ public final class HangulKeyboardManager {
 
     /// 기본 키보드들 등록
     private func registerDefaultKeyboards() {
-        // 두벌식 키보드
-        let dubeol = HangulKeyboardDefault(
-            identifier: "2",
-            name: "두벌식",
-            type: .jaso
-        )
-        registerKeyboard(dubeol)
+        // 레거시 하드코딩 자판 (하위 호환): "2"(두벌식), "3"(세벌식 390)
+        // 기존 동작/테스트를 그대로 유지하기 위해 코드로 정의된 자판을 사용한다.
+        registerKeyboard(HangulKeyboardDefault(identifier: "2", name: "두벌식", type: .jaso))
+        registerKeyboard(HangulKeyboard3Set(identifier: "3", name: "세벌식"))
 
-        // 세벌식 키보드
-        let sebeol = HangulKeyboard3Set(
-            identifier: "3",
-            name: "세벌식"
-        )
-        registerKeyboard(sebeol)
-
-        // 두벌식 옛한글
-        let dubeolYet = HangulKeyboardDefault(
-            identifier: "2y",
-            name: "두벌식 옛한글",
-            type: .jasoYet
-        )
-        registerKeyboard(dubeolYet)
-
-        // 세벌식 옛한글
-        let sebeolYet = HangulKeyboard3Set(
-            identifier: "3y",
-            name: "세벌식 옛한글"
-        )
-        registerKeyboard(sebeolYet)
+        // 데이터 기반 자판 (번들 XML): 2y, 32, 39, 3f, 3s, 3y, ahn, ro
+        // 두벌식/세벌식 옛한글(2y/3y)은 full 결합 규칙으로 실제 옛한글 조합을 지원한다.
+        // "2"는 레거시 하드코딩 자판을 유지하기 위해 건너뛴다.
+        for file in HangulResourceLoader.bundledKeyboardFiles {
+            guard let keyboard = HangulResourceLoader.loadKeyboard(file: file) else { continue }
+            if keyboard.identifier == "2" { continue }
+            registerKeyboard(keyboard)
+        }
     }
 }
