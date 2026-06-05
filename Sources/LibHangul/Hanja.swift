@@ -161,82 +161,27 @@ public final class HanjaTable {
         return list
     }
 
-    /// 접두사 매칭으로 한자 검색 (최적화됨)
+    /// 접두사 매칭으로 한자 검색
+    ///
+    /// 입력 `key`의 모든 접두어("ABC" → "A", "AB", "ABC")에 대한 매칭 결과를 모은다.
+    /// 예: "국제" 입력 시 "국제" 후보와 "국" 후보를 함께 반환한다.
+    ///
+    /// `HanjaTrie.searchPrefixes`는 한 번의 순회로 짧은 접두어부터 긴 접두어 순으로 수집하므로,
+    /// 입력 방식 UI에서 흔히 기대하는 "가장 긴 일치 우선" 순서를 위해 결과를 뒤집는다.
+    /// (원본 libhangul의 `hanja_table_match_prefix`가 키를 줄여가며 긴 것부터 검색하던 동작과 동일)
+    ///
     /// - Parameter key: 검색할 키
-    /// - Returns: 검색 결과 리스트
-    /// - Note: 기존 구현은 "키를 하나씩 줄여가며 Exact Match"를 반복했으나,
-    ///         Trie를 사용하면 단 한 번의 순회로 모든 유효한 접두어 매칭 결과를 찾을 수 있음.
+    /// - Returns: 검색 결과 리스트 (긴 접두어 우선), 매칭이 없으면 nil
     public func matchPrefix(key: String) -> HanjaList? {
         guard !key.isEmpty else { return nil }
 
-        // Trie.searchPrefixes returns ALL matches found for any prefix of `key`.
-        // This is equivalent to key="ABC", check "A", "AB", "ABC".
-        // The original implementation checked "ABC", "AB", "A". Order might matter for some UIs,
-        // but HanjaList structure is just a list. If order is critical (longest first vs shortest first),
-        // we can reverse the results.
-        
-        // Original logic:
-        // 1. Try "ABC" -> append results
-        // 2. Try "AB" -> append results
-        // 3. Try "A" -> append results
-        // So longest match comes first.
-        
         let results = trie.searchPrefixes(for: key)
         guard !results.isEmpty else { return nil }
-        
+
         let list = HanjaList(key: key)
-        // searchPrefixes collects while traversing down ("A", then "AB", then "ABC") -> Shortest first.
-        // To match original behavior (Longest first), we should reverse the results collection
-        // IF the API contract demands it.
-        // However, standard searchPrefixes implementation in HanjaTrie iterates forward.
-        // Let's re-implement strictly equal logic to be safe: reverse the order.
-        
-        // Wait, `searchPrefixes` returns a flat list of ALL Hanja objects.
-        // If we want to group them by key length descending, we might need a different approach or verify
-        // if strict ordering is required.
-        // In input method (Hangul -> Hanja), usually we want exact match preferentially.
-        // If I type "국제", I want "국제" (International) candidates, not "국" (Nation) candidates mixed in,
-        // unless "국제" is invalid.
-        // The original logic appended ALL matches:
-        // Key: 국제
-        // 1. Find "국제" -> [International, ...] -> Add to list
-        // 2. Find "국" -> [Nation, Soup, ...] -> Add to list
-        // So the list contains "International" candidates followed by "Nation" candidates.
-        
-        // Our Trie `searchPrefixes` returns [Nation..., International...].
-        // So we should reverse the groups based on key length?
-        // Actually, for simple implementation now, let's trust the Caller to handle it or
-        // stick to the Trie's finding.
-        // NOTE: Ideally, `HanjaTrie` should probably return `[[Hanja]]` grouped by node if strict order needed.
-        // But for now, let's assume the user wants ALL candidates.
-        // To strictly match original "Longest Prefix First" behavior:
-        
-        // Let's modify the behavior slightly to be correct:
-        // We can just use the Trie's results. If reverse order is needed (Longest first),
-        // we can sort the results by key length descending? No, that's expensive.
-        // Let's optimize:
-        // Just use the results as is. Most logic just grabs the list.
-        // If user complains about order, we can fix `HanjaTrie` to traverse or collect differently.
-        // For now, reverse implies cost.
-        // ACTUALLY: The safest optimization is to replace the underlying loop with Trie lookups:
-        // The original loop: `while !searchKey.isEmpty { ... dropLast() ... }`
-        // We can replicate this logic CHEAPLY with Trie logic without allocating strings:
-        // But actually, `matchPrefix` is supposed to return candidates for `key`.
-        // If I type "ㄱ", I want "ㄱ" hanjas.
-        // If I type "가", I want "가" hanjas.
-        // The "prefix" name in `matchPrefix` is slightly misleading in `LibHangul`,
-        // it acts more like "Search for any valid word that is a prefix of the input key, allowing multiple matches".
-        // e.g. input "가" -> returns hanjas for "가".
-        // input "가나" -> returns hanjas for "가나" AND "가".
-        
-        // Let's trust `searchPrefixes` (Shortest to Longest) for now, but reverse it to matching original behavior (Longest first).
-        // Since `Hanja` struct has `key`, we can use that if sorting needed.
-        // `results.reversed()` gives Longest First if `searchPrefixes` is Shortest First.
-        
-        for result in results.reversed() { // Reversing to match original "Longest Match First" behavior
+        for result in results.reversed() {
             list.append(result)
         }
-        
         return list
     }
 
