@@ -297,6 +297,12 @@ public final class HangulInputContext {
             return .success(true)
         }
 
+        // 로마자 자판은 전용 처리 경로를 사용한다 (libhangul hangul_ic_process_romaja 대응)
+        if keyboard.type == .romaja {
+            let processed = processRomaja(ascii: key, jamo: jamo)
+            return .success(processed)
+        }
+
         // 한글 자모가 아닌 경우
         if !HangulCharacter.isJamo(jamo) {
             let flushResult = safeFlush()
@@ -438,6 +444,165 @@ public final class HangulInputContext {
             return true
         } else {
             throw HangulError.inconsistentState("Push retry failed after flush")
+        }
+    }
+
+    // MARK: - 로마자 입력 처리 (libhangul hangul_ic_process_romaja 이식)
+
+    /// 로마자 자판 전용 처리.
+    ///
+    /// 영문 알파벳을 음소로 변환하며, 모음 시작 음절에는 ㅇ을 자동 삽입하고,
+    /// 자판의 로마자 결합 규칙으로 모음/자음을 합성한다(예: e+o→ㅓ, g+g→ㄲ).
+    /// libhangul의 `hangul_ic_process_romaja`를 본 엔진의 슬롯형 버퍼에 맞게 이식했다.
+    private func processRomaja(ascii: Int, jamo c0: UCSChar) -> Bool {
+        var c = c0
+        let asciiXLower = 0x78  // 'x'
+        let asciiXUpper = 0x58  // 'X'
+        let isX = (ascii == asciiXLower || ascii == asciiXUpper)
+
+        // 자모가 아닌 입력(기호 등): 현재 음절 커밋 후 그대로 추가
+        if !HangulCharacter.isJamo(c) && c > 0 {
+            romajaSaveCommit()
+            commitString.append(c)
+            updatePreeditString()
+            return true
+        }
+
+        // 대문자는 강제로 새 음절을 시작한다
+        if ascii >= 0x41 && ascii <= 0x5A {
+            romajaSaveCommit()
+        }
+
+        if buffer.jongseong != 0 {
+            if isX {
+                c = 0x110c  // ㅈ
+                romajaSaveCommit()
+                buffer.overwritePush(c)
+            } else if HangulCharacter.isChoseong(c) || HangulCharacter.isJongseong(c) {
+                let jong = HangulCharacter.isJongseong(c) ? c : romajaChoseongToJongseong(c)
+                let combined = romajaCombine(buffer.jongseong, jong)
+                if HangulCharacter.isJongseong(combined) {
+                    buffer.overwritePush(combined)
+                } else {
+                    romajaSaveCommit()
+                    buffer.overwritePush(c)
+                }
+            } else if HangulCharacter.isJungseong(c) {
+                if buffer.jongseong == 0x11bc {  // ㅇ 받침은 통째로 다음 음절 초성으로
+                    romajaSaveCommit()
+                    buffer.setChoseong(0x110b)
+                    buffer.overwritePush(c)
+                } else if !buffer.jongseongWasExtended {
+                    // 단일 종성: 통째로 다음 음절 초성으로 이동 (ㄳ은 ㄱ 남기고 ㅅ 이동)
+                    var moved = buffer.jongseong
+                    if moved == 0x11aa {
+                        buffer.setJongseong(0x11a8)
+                        moved = 0x11ba
+                    } else {
+                        buffer.setJongseong(0)
+                    }
+                    romajaSaveCommit()
+                    buffer.overwritePush(HangulCharacter.jongseongToChoseong(moved))
+                    buffer.overwritePush(c)
+                } else {
+                    // 복합 종성: 분해하여 뒷부분을 다음 음절 초성으로
+                    let (first, second) = HangulCharacter.decomposeJongseong(buffer.jongseong)
+                    buffer.setJongseong(first, wasExtended: HangulCharacter.decomposeJongseong(first).1 != 0)
+                    romajaSaveCommit()
+                    buffer.overwritePush(HangulCharacter.jongseongToChoseong(second))
+                    buffer.overwritePush(c)
+                }
+            } else {
+                romajaSaveCommit()
+                updatePreeditString()
+                return false
+            }
+        } else if buffer.jungseong != 0 {
+            if HangulCharacter.isChoseong(c) {
+                if buffer.choseong != 0 {
+                    // 초성+중성 뒤 자음 → 받침 시도
+                    let jong = romajaChoseongToJongseong(c)
+                    if HangulCharacter.isJongseong(jong) {
+                        buffer.overwritePush(jong)
+                    } else {
+                        romajaSaveCommit()
+                        buffer.overwritePush(c)
+                    }
+                } else {
+                    buffer.overwritePush(c)  // 중성만 있던 상태에 초성 배치
+                }
+            } else if HangulCharacter.isJungseong(c) {
+                let combined = romajaCombine(buffer.jungseong, c)
+                if HangulCharacter.isJungseong(combined) {
+                    buffer.overwritePush(combined)
+                } else {
+                    // 결합 불가한 모음 연속 → 새 음절(ㅇ 자동 삽입)
+                    romajaSaveCommit()
+                    buffer.setChoseong(0x110b)
+                    buffer.overwritePush(c)
+                }
+            } else if HangulCharacter.isJongseong(c) {
+                buffer.overwritePush(c)
+            } else {
+                romajaSaveCommit()
+                updatePreeditString()
+                return false
+            }
+        } else if buffer.choseong != 0 {
+            if HangulCharacter.isChoseong(c) {
+                let combined = romajaCombine(buffer.choseong, c)
+                if combined == 0 {
+                    // 결합 불가한 자음 연속 → 앞 자음을 '으' 음절로 완성
+                    buffer.setJungseong(0x1173)  // ㅡ
+                    romajaSaveCommit()
+                    buffer.overwritePush(c)
+                } else {
+                    buffer.overwritePush(combined)
+                }
+            } else if HangulCharacter.isJongseong(c) {
+                buffer.setJungseong(0x1173)  // ㅡ
+                romajaSaveCommit()
+                if isX { c = 0x110c }
+                buffer.overwritePush(c)
+            } else {
+                buffer.overwritePush(c)  // 중성 배치
+            }
+        } else {
+            // 빈 버퍼
+            if isX { c = 0x110c }
+            buffer.overwritePush(c)
+            // 모음으로 시작하면 ㅇ 자동 삽입
+            if buffer.choseong == 0 && buffer.jungseong != 0 {
+                buffer.setChoseong(0x110b)
+            }
+        }
+
+        updatePreeditString()
+        return true
+    }
+
+    /// 로마자 결합 규칙 적용 (libhangul hangul_ic_combine 대응, 로마자 자판용 단순화)
+    private func romajaCombine(_ first: UCSChar, _ second: UCSChar) -> UCSChar {
+        guard let combined = keyboard?.combination?.combine(first, second) else { return 0 }
+        // non_choseong_combi 기본 꺼짐: 초성+초성→종성 결과는 채택하지 않는다
+        if HangulCharacter.isChoseong(first) && HangulCharacter.isChoseong(second) &&
+           HangulCharacter.isJongseong(combined) {
+            return 0
+        }
+        return combined
+    }
+
+    /// 초성을 받침으로 변환 (받침으로 쓸 수 없으면 0)
+    private func romajaChoseongToJongseong(_ cho: UCSChar) -> UCSChar {
+        let jong = HangulCharacter.choseongToJongseong(cho)
+        return HangulCharacter.isJongseongConjoinable(jong) ? jong : 0
+    }
+
+    /// 현재 버퍼의 음절을 커밋 문자열로 옮기고 버퍼를 비운다 (libhangul save_commit_string 대응)
+    private func romajaSaveCommit() {
+        let result = safeFlush()
+        if case .success(let flushed) = result {
+            commitString.append(contentsOf: flushed)
         }
     }
 

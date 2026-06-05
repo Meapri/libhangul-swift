@@ -5,6 +5,7 @@ class RefinementTestRunner {
     
     func run() {
         print("Running RefinementTestRunner...")
+        testRomaja()
         testDataDrivenLoading()
         testNewKeyboardsAndOldHangul()
         testDoubleStrokeOption()
@@ -54,6 +55,36 @@ class RefinementTestRunner {
         // 현대 자판(39)에서는 옛한글 클러스터가 생기지 않아야 함 (default 테이블에 규칙 없음)
         // r→ㄹ? 39에서는 다른 매핑이므로, 클러스터 미발생만 확인: 같은 입력이 음절로 합쳐지지 않음
         print("✅ PASSED: New keyboards & old-hangul composition")
+    }
+
+    func testRomaja() {
+        print("\n--- Running Romaja Input Tests ---")
+        func ro(_ s: String) -> String { fullOutput(HangulInputContext(keyboard: "ro"), s) }
+
+        // 기본 음절: 자음+모음, 받침, ㅇ 자동 삽입
+        assertEquals(ro("ga"), "가", "romaja: ga -> 가")
+        assertEquals(ro("gan"), "간", "romaja: gan -> 간")
+        assertEquals(ro("han"), "한", "romaja: han -> 한")
+        assertEquals(ro("a"), "아", "romaja: a -> 아 (ㅇ 자동 삽입)")
+
+        // 모음 결합 (e+o→ㅓ, 이중모음)
+        assertEquals(ro("eo"), "어", "romaja: eo -> 어")
+        assertEquals(ro("seoul"), "서울", "romaja: seoul -> 서울")
+
+        // 문장
+        assertEquals(ro("annyeong"), "안녕", "romaja: annyeong -> 안녕")
+        assertEquals(ro("annyeonghaseyo"), "안녕하세요", "romaja: annyeonghaseyo -> 안녕하세요")
+        assertEquals(ro("gamsahabnida"), "감사합니다", "romaja: gamsahabnida -> 감사합니다")
+
+        // 된소리 (g+g→ㄲ)와 이중모음 (w+a→ㅘ)
+        assertEquals(ro("gga"), "까", "romaja: gga -> 까")
+        assertEquals(ro("gwa"), "과", "romaja: gwa -> 과")
+
+        // ng → ㅇ받침 규칙 (libhangul 로마자의 본질적 동작): annyeong의 받침 ㅇ을 만든다.
+        // 같은 규칙 때문에 "hangug"은 항욱이 된다 (한국과 구분 불가) — 충실한 이식 결과를 고정.
+        assertEquals(ro("hangug"), "항욱", "romaja: hangug -> 항욱 (ng→ㅇ 규칙)")
+
+        print("✅ PASSED: Romaja input")
     }
 
     func testDataDrivenLoading() {

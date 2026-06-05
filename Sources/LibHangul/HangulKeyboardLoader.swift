@@ -68,11 +68,16 @@ extension HangulKeyboard {
         }
         guard !keyMap.isEmpty else { return nil }
 
-        // 조합 규칙: <include file="hangul-combination-xxx.xml"/>
+        // 조합 규칙: 외부 파일 참조(<include file="..."/>) 또는 인라인 <combination> 섹션
         var combination: HangulCombination?
         if let includeFile = HangulXML.attribute("file", in: xml),
            includeFile.contains("combination") {
             combination = combinationResolver?(includeFile)
+        } else {
+            // 인라인 <combination>의 <item first second result/> 규칙을 파싱
+            // (로마자/안마태 자판은 결합 규칙을 자판 파일에 직접 포함한다)
+            let inline = HangulCombination.parse(xml: xml)
+            if !inline.isEmpty { combination = inline }
         }
 
         return HangulKeyboard(identifier: id, name: name, type: type,
