@@ -28,6 +28,11 @@ internal final class HangulBuffer {
     /// 음절 분리 시 확장된 종성은 분해되고, 원래 단일 입력은 전체 이동
     internal private(set) var jongseongWasExtended: Bool = false
 
+    /// 같은 초성을 연속으로 입력했을 때 된소리(쌍자음)로 결합할지 여부
+    /// (예: ㄱ+ㄱ→ㄲ). `HangulInputContextOption.combinationOnDoubleStroke`에 의해 제어된다.
+    /// 기본값은 false로, Shift 조합으로 쌍자음을 입력하는 표준 두벌식 동작을 유지한다.
+    internal var combineOnDoubleStroke: Bool = false
+
     private let maxStackSize: Int
 
     /// 최대 스택 크기
@@ -171,8 +176,14 @@ internal final class HangulBuffer {
             choseong = jamo
             return true
         } else if jungseong == 0 {
-            // 초성이 있고 중성이 없으면 결합하지 않고 새 음절 시작
-            // (ㄱ + ㄱ = ㄱㄱ, not ㄲ)
+            // 초성이 있고 중성이 없는 상태에서 또 초성이 들어온 경우.
+            // 기본 동작: 결합하지 않고 새 음절 시작 (ㄱ + ㄱ = ㄱㄱ, not ㄲ).
+            // combineOnDoubleStroke가 켜져 있으면 같은 자음 반복 입력을 된소리로 결합한다
+            // (ㄱ+ㄱ→ㄲ, ㄷ+ㄷ→ㄸ, ㅂ+ㅂ→ㅃ, ㅅ+ㅅ→ㅆ, ㅈ+ㅈ→ㅉ).
+            if combineOnDoubleStroke, let combined = combineChoseong(choseong, jamo) {
+                choseong = combined
+                return true
+            }
             return false
         } else if jongseong == 0 {
             // 초성, 중성이 있고 종성이 없으면 종성으로 변환 후 추가
@@ -228,7 +239,7 @@ internal final class HangulBuffer {
     
     private static let choseongCombinations: [UCSChar: [UCSChar: UCSChar]] = [
         0x1100: [0x1100: 0x1101], // ㄱ + ㄱ = ㄲ
-        0x1102: [0x1102: 0x1103], // ㄷ + ㄷ = ㄸ
+        0x1103: [0x1103: 0x1104], // ㄷ + ㄷ = ㄸ
         0x1107: [0x1107: 0x1108], // ㅂ + ㅂ = ㅃ
         0x1109: [0x1109: 0x110A], // ㅅ + ㅅ = ㅆ
         0x110C: [0x110C: 0x110D]  // ㅈ + ㅈ = ㅉ

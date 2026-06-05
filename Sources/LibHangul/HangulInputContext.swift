@@ -12,10 +12,15 @@ import Foundation
 
 /// 입력 컨텍스트 옵션
 public enum HangulInputContextOption: Int, Sendable {
-    case autoReorder = 0              // 자동 재정렬
-    case combinationOnDoubleStroke = 1 // 두 번 입력시 결합
-    case nonChoseongCombination = 2    // 초성 결합 허용
-    case fineGrainedBackspace = 3      // 복합 자모를 한 단계씩 세밀하게 삭제
+    /// 자동 재정렬: 중성이 먼저 입력된 뒤 초성이 들어오면 같은 음절로 모은다 (모아치기, 예: ㅏ+ㄱ→가). 기본 켜짐.
+    case autoReorder = 0
+    /// 두 번 입력 시 된소리 결합: 같은 초성을 연속 입력하면 쌍자음으로 결합한다 (ㄱㄱ→ㄲ). 기본 꺼짐.
+    /// 표준 두벌식은 Shift로 쌍자음을 입력하므로, 켜면 Shift 없이도 된소리를 입력할 수 있다.
+    case combinationOnDoubleStroke = 1
+    /// (예약) 초성이 아닌 위치의 자모 결합 허용. 현재 동작에 영향을 주지 않는다.
+    case nonChoseongCombination = 2
+    /// 세밀한 백스페이스: 복합 자모(ㄲ, ㄳ, ㅘ 등)를 한 단계씩 분해하며 삭제한다. 기본 켜짐.
+    case fineGrainedBackspace = 3
 }
 
 /// 출력 모드
@@ -93,7 +98,7 @@ public final class HangulInputContext {
         set { configuration.forceNFCNormalization = newValue }
     }
 
-    /// 관용 입력 모드 활성화 여부 (초성 ㄷ → 종성 ㄴ 자동 변환)
+    /// (예약) 관용 입력 모드 플래그. 현재 조합 로직에 영향을 주지 않으며, 향후 확장을 위해 유지된다.
     public var enableIdiomaticInput: Bool = true
 
     /// 버퍼 상태 모니터링 활성화
@@ -158,16 +163,47 @@ public final class HangulInputContext {
     /// - Parameter input: 키 입력
     /// - Returns: 처리 결과 (성공 시 Bool, 실패 시 HangulError)
     public func process(_ input: KeyInput) -> Result<Bool, HangulError> {
+        let key: Int
+        let result: Result<Bool, HangulError>
         switch input {
         case .character(let char):
             guard let ascii = char.asciiValue else {
                 return .failure(.invalidInput("Non-ASCII character: \(char)"))
             }
-            return processASCII(Int(ascii))
+            key = Int(ascii)
+            let commitCountBefore = commitString.count
+            result = processASCII(key)
+            notifyDelegate(key: key, result: result, commitCountBefore: commitCountBefore)
+            return result
         case .keyCode(let code):
-            return processASCII(Int(code))
+            key = Int(code)
+            let commitCountBefore = commitString.count
+            result = processASCII(key)
+            notifyDelegate(key: key, result: result, commitCountBefore: commitCountBefore)
+            return result
         case .backspace:
+            // backspace()가 자체적으로 델리게이트를 호출하므로 여기서는 중복 호출하지 않는다
             return .success(backspace())
+        }
+    }
+
+    /// 델리게이트에 키 처리 결과와 전환(commit) 이벤트를 알린다.
+    /// - Parameters:
+    ///   - key: 처리한 키 코드 (백스페이스는 8)
+    ///   - result: 처리 결과
+    ///   - commitCountBefore: 처리 직전의 커밋 문자열 길이 (전환 감지용)
+    private func notifyDelegate(key: Int, result: Result<Bool, HangulError>, commitCountBefore: Int) {
+        guard delegate != nil else { return }
+        let processed: Bool
+        if case .success(let ok) = result {
+            processed = ok
+        } else {
+            processed = false
+        }
+        delegate?.hangulInputContext(self, didProcess: key, result: processed)
+        // 처리 과정에서 새로 커밋된 문자가 생겼으면 전환 이벤트를 알린다
+        if commitString.count > commitCountBefore, let last = commitString.last {
+            delegate?.hangulInputContext(self, didTransition: last, preedit: preeditString)
         }
     }
     
@@ -403,6 +439,17 @@ public final class HangulInputContext {
     /// 백스페이스 처리
     /// - Returns: 처리되었으면 true
     public func backspace() -> Bool {
+        let handled = performBackspace()
+        // 모든 경로에서 일관되게 델리게이트에 알린다 (8 = ASCII Backspace)
+        if delegate != nil {
+            delegate?.hangulInputContext(self, didProcess: 8, result: handled)
+        }
+        return handled
+    }
+
+    /// 백스페이스 실제 처리 (델리게이트 호출과 분리)
+    /// - Returns: 처리되었으면 true
+    private func performBackspace() -> Bool {
         // 1. 먼저 버퍼에서 제거 시도
         if !buffer.isEmpty {
             let removed = buffer.pop(
@@ -419,7 +466,6 @@ public final class HangulInputContext {
         if !commitString.isEmpty && buffer.isEmpty {
             // 최근 커밋된 내용을 지움 (완성된 음절이든 일반 문자든)
             _ = commitString.removeLast()
-            delegate?.hangulInputContext(self, didProcess: 8, result: true)
             return true
         }
 
@@ -512,6 +558,10 @@ public final class HangulInputContext {
         } else {
             options.remove(option)
         }
+        // 버퍼 내부 동작에 영향을 주는 옵션은 버퍼에 반영한다
+        if option == .combinationOnDoubleStroke {
+            buffer.combineOnDoubleStroke = value
+        }
     }
 
     /// 옵션 확인
@@ -561,10 +611,13 @@ public final class HangulInputContext {
     /// - Parameter jamo: 검증할 자모
     /// - Returns: 유효하면 true
     private func validateJamo(_ jamo: UCSChar) -> Bool {
-        // 유니코드 한글 자모 범위 확인
-        let isValidRange = (0x1100...0x11FF).contains(jamo) || // 결합 자모
-                          (0x3131...0x318E).contains(jamo)    // 호환 자모
-        return isValidRange
+        // 버퍼의 `isJamo` 판정과 일관되게 검증한다.
+        // - isJamo: 조합용 자모 0x1100-0x11FF(필러 포함) + 확장 영역(옛한글:
+        //   초성 0xA960-0xA97C, 중성 0xD7B0-0xD7C6, 종성 0xD7CB-0xD7FB)
+        // - isCJamo: 호환 자모 0x3131-0x318E
+        // 이전 구현은 확장 영역을 누락하여, isJamo는 허용하지만 검증은 거부하는
+        // 불일치가 있었다(옛한글 입력이 invalidJamoCode로 거부됨).
+        return HangulCharacter.isJamo(jamo) || HangulCharacter.isCJamo(jamo)
     }
 
     /// 안전한 버퍼 플러시 (Result 타입 반환)
@@ -580,20 +633,6 @@ public final class HangulInputContext {
             // 예상치 못한 오류
             recoverFromError()
             return .failure(.inconsistentState(error.localizedDescription))
-        }
-    }
-
-    /// 호환성을 위한 기존 safeFlush 메서드
-    private func safeFlushLegacy() -> [UCSChar] {
-        let result = safeFlush()
-        switch result {
-        case .success(let data):
-            return data
-        case .failure:
-            // 오류 시 최소한의 데이터라도 보존
-            let preservedData = commitString
-            commitString.removeAll()
-            return normalizeUnicode(preservedData)
         }
     }
 
@@ -764,26 +803,6 @@ public final class HangulInputContext {
     }
 
     // MARK: - Private Methods
-
-    private func processJamo(_ jamo: UCSChar) -> Bool {
-        // 입력 자모 유효성 검증
-        guard validateJamo(jamo) else {
-            return false
-        }
-
-        // 버퍼가 가득 찼는지 확인
-        if buffer.getJamoString().count >= maxBufferSize {
-            let _ = safeFlush() // 안전하게 flush
-        }
-
-        // 자모를 버퍼에 추가
-        let success = buffer.push(jamo)
-        if success {
-            updatePreeditString()
-        }
-
-        return success
-    }
 
     private func updatePreeditString() {
         preeditString = buffer.getJamoString()
