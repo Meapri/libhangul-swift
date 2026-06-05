@@ -33,6 +33,11 @@ let preedit = context.getPreeditString() // "가"
 
 ## Topics
 
+### 안내서
+
+- <doc:GettingStarted>
+- <doc:IMEIntegration>
+
 ### 핵심 타입
 
 - ``HangulInputContext``
