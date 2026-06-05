@@ -33,6 +33,14 @@ internal final class HangulBuffer {
     /// 기본값은 false로, Shift 조합으로 쌍자음을 입력하는 표준 두벌식 동작을 유지한다.
     internal var combineOnDoubleStroke: Bool = false
 
+    /// 자판에서 주입된 일반 결합 규칙 테이블. 옛한글의 임의 자모 클러스터를 포함한다.
+    /// nil이면 내장(하드코딩) 결합 규칙만 사용한다.
+    internal var combination: HangulCombination?
+
+    /// 초성이 아닌 위치/임의 자모의 결합 허용 (옛한글). 켜지면 ㄱ+ㄷ→ᄓ 같은
+    /// 초성 클러스터를 형성한다. `nonChoseongCombination` 옵션 또는 옛한글 자판에서 활성화된다.
+    internal var allowNonChoseongCombination: Bool = false
+
     private let maxStackSize: Int
 
     /// 최대 스택 크기
@@ -178,7 +186,14 @@ internal final class HangulBuffer {
         } else if jungseong == 0 {
             // 초성이 있고 중성이 없는 상태에서 또 초성이 들어온 경우.
             // 기본 동작: 결합하지 않고 새 음절 시작 (ㄱ + ㄱ = ㄱㄱ, not ㄲ).
-            // combineOnDoubleStroke가 켜져 있으면 같은 자음 반복 입력을 된소리로 결합한다
+            //
+            // 옛한글(allowNonChoseongCombination): 결합 규칙 테이블에 정의된 임의 초성
+            // 클러스터를 형성한다 (ㄱ+ㄷ→ᄓ 등).
+            if allowNonChoseongCombination, let combined = combineChoseong(choseong, jamo) {
+                choseong = combined
+                return true
+            }
+            // 현대: combineOnDoubleStroke가 켜져 있으면 같은 자음 반복 입력을 된소리로 결합
             // (ㄱ+ㄱ→ㄲ, ㄷ+ㄷ→ㄸ, ㅂ+ㅂ→ㅃ, ㅅ+ㅅ→ㅆ, ㅈ+ㅈ→ㅉ).
             if combineOnDoubleStroke, let combined = combineChoseong(choseong, jamo) {
                 choseong = combined
@@ -290,15 +305,27 @@ internal final class HangulBuffer {
         ]
     ]
 
+    // 주입된 결합 규칙 테이블을 먼저 참조하고, 없으면 내장 테이블로 폴백한다.
+    // 테이블 결과는 해당 위치(초/중/종성)에 유효한 자모일 때만 채택한다.
+
     private func combineChoseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
+        if let r = combination?.combine(a, b), HangulCharacter.isChoseong(r) {
+            return r
+        }
         return Self.choseongCombinations[a]?[b]
     }
 
     private func combineJungseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
+        if let r = combination?.combine(a, b), HangulCharacter.isJungseong(r) {
+            return r
+        }
         return Self.jungseongCombinations[a]?[b]
     }
 
     private func combineJongseong(_ a: UCSChar, _ b: UCSChar) -> UCSChar? {
+        if let r = combination?.combine(a, b), HangulCharacter.isJongseong(r) {
+            return r
+        }
         return Self.jongseongCombinations[a]?[b]
     }
 }

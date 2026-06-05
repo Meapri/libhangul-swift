@@ -23,6 +23,9 @@ let package = Package(
             name: "LibHangul",
             dependencies: [],
             path: "Sources/LibHangul",
+            resources: [
+                .copy("Resources/keyboards")
+            ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]

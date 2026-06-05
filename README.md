@@ -12,6 +12,9 @@ Sources/LibHangul/
 ├── HangulBuffer.swift                   # 초·중·종성 조합 버퍼
 ├── HangulCharacter.swift                # 유니코드 한글 연산 (결합, 분리, 자모 변환)
 ├── HangulKeyboard.swift                 # 자판 배열 매핑 (두벌식, 세벌식 등)
+├── HangulKeyboardLoader.swift           # 자판/조합 XML 데이터 기반 로더 (Bundle.module)
+├── HangulCombination.swift              # 자모 결합 규칙 테이블 (현대/옛한글)
+├── Resources/keyboards/*.xml            # libhangul 호환 자판·조합 데이터 (번들 리소스)
 ├── HangulScalar.swift                   # UCSChar(UInt32) 유틸리티
 ├── Hanja.swift                          # 한자 사전 파서 및 HanjaTable
 ├── HanjaTrie.swift                      # Sorted Array + Binary Search Trie
@@ -43,14 +46,30 @@ Sources/LibHangul/
 
 ## 지원 자판
 
-| ID | 이름 | 설명 |
-|---|---|---|
-| `"2"` | 두벌식 표준 | QWERTY 기반 두벌식 (기본값) |
-| `"3"` | 세벌식 390 | 세벌식 390 배열 |
-| `"2y"` | 두벌식 옛한글 | 현재 두벌식(`"2"`)과 동일한 자판 매핑 사용 |
-| `"3y"` | 세벌식 옛한글 | 현재 세벌식 390(`"3"`)과 동일한 자판 매핑 사용 |
+자판 배열과 자모 결합 규칙은 `data/keyboards/*.xml`(libhangul 호환)에서 로드되며, SPM 리소스로 번들되어 의존성으로 사용할 때도 `Bundle.module`에서 읽는다.
 
-> **참고:** `"2y"`/`"3y"`는 타입만 옛한글로 표시될 뿐, 현재 자판 매핑과 조합 규칙은 표준 두벌식/세벌식과 동일하다. 옛한글 전용 자모 조합(임의 자모 스태킹)은 아직 구현되지 않았다.
+| ID | 이름 | 타입 | 설명 |
+|---|---|---|---|
+| `"2"` | 두벌식 | jamo | QWERTY 기반 두벌식 (기본값, 레거시 내장) |
+| `"3"` | 세벌식 390 | jaso | 레거시 내장 |
+| `"39"` | 세벌식 390 | jaso | 데이터 기반 |
+| `"3f"` | 세벌식 최종 | jaso | 데이터 기반 |
+| `"32"` | 세벌식 두벌 배열 | jaso | 데이터 기반 |
+| `"3s"` | 세벌식 순아래 | jaso | 데이터 기반 |
+| `"ahn"` | 안마태 | jaso | 데이터 기반 |
+| `"ro"` | 로마자 | romaja | 단일 글자 매핑(기본). 다중 글자 처리는 미구현 |
+| `"2y"` | 두벌식 옛한글 | jamo-yet | 옛한글 자모 조합 지원 (full 결합 규칙) |
+| `"3y"` | 세벌식 옛한글 | jaso-yet | 옛한글 자모 조합 지원 (full 결합 규칙) |
+
+옛한글(`"2y"`/`"3y"`)은 `hangul-combination-full.xml`(352개 규칙)을 사용해 임의 자모 클러스터(예: ㄱ+ㄷ→ᄓ)와 아래아(ㆍ) 등 옛한글 음절을 조합한다. 완성형으로 합성되지 않는 음절은 조합용 자모(U+1100~)로 출력된다.
+
+```swift
+let yet = HangulInputContext(keyboard: "2y")
+yet.process(Character("r"))   // ㄱ
+yet.process(Character("e"))   // ㄷ → 초성 클러스터 ᄓ (U+115A)
+```
+
+> **로마자(`"ro"`) 한계:** 현재 단일 글자→자모 매핑만 동작하며, "eo"→ㅓ, "gg"→ㄲ 같은 다중 글자 로마자 처리는 미구현이다.
 
 ## 입력 옵션
 
@@ -60,6 +79,7 @@ Sources/LibHangul/
 |---|---|---|
 | `.autoReorder` | 켜짐 | 모아치기: 중성 입력 후 초성이 들어오면 같은 음절로 모음 (ㅏ+ㄱ→가) |
 | `.combinationOnDoubleStroke` | 꺼짐 | 같은 초성 연속 입력을 된소리로 결합 (ㄱㄱ→ㄲ). Shift 없이 쌍자음 입력 |
+| `.nonChoseongCombination` | 꺼짐 | 임의 자모 결합 허용(옛한글 클러스터). 옛한글 자판에서는 자동 활성화 |
 | `.fineGrainedBackspace` | 켜짐 | 복합 자모(ㄲ, ㄳ, ㅘ 등)를 한 단계씩 분해하며 삭제 |
 
 ```swift
