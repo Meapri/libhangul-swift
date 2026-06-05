@@ -95,6 +95,19 @@ context.setOption(.combinationOnDoubleStroke, value: true)
 // "rrk" → 까  (ㄱㄱ→ㄲ, +ㅏ)
 ```
 
+## 입력기 연동 (preedit 표시 · 조합 밑줄)
+
+이 엔진은 UI를 그리지 않고 **조합 중 문자열(preedit)**과 **확정 문자열(commit)**만 호스트에 넘긴다. 입력기는 preedit를 "마크된 텍스트"로 표시한다.
+
+조합 중 글자 아래의 **밑줄은 엔진이 아니라 호스트 텍스트 시스템이 그린다.** 따라서 밑줄을 끄려면 한글 로직이 아니라 입력기 연동 계층에서 마크된 텍스트 속성을 설정한다.
+
+- **macOS (InputMethodKit):** `setMarkedText`에 밑줄 없는 `NSAttributedString`(`.underlineStyle: 0`) 전달
+- **iOS:** 호스트 뷰의 `markedTextStyle = [.underlineStyle: 0]`
+
+> 주의: 일부 앱은 자체 밑줄을 강제해 무시할 수 있고, 중간 상태를 커밋해 숨기는 방식은 한글 음절 내 편집을 잃으므로 권장하지 않는다.
+
+자세한 방법·코드·주의사항은 DocC 문서 [입력기 연동과 조합 밑줄 처리](Sources/LibHangul/LibHangul.docc/IMEIntegration.md)를 참고하라.
+
 ## 설치
 
 ### Swift Package Manager
